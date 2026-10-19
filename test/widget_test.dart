@@ -128,6 +128,36 @@ void main() {
     expect(find.text('4S 달성!'), findsOneWidget);
   });
 
+  testWidgets('결과 화면 버튼은 아래에 고정되어 스크롤 없이 보인다', (tester) async {
+    usePhoneSize(tester);
+    await tester.pumpWidget(host(SoloPlayScreen(game: SoloGame(secret: '4725'))));
+    for (var i = 0; i < 8; i++) {
+      await throwGuess(tester, '1234');
+    }
+    await throwGuess(tester, '4725');
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+
+    final screenHeight = tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    final actions = find.byKey(const Key('result-actions'));
+    expect(tester.getBottomLeft(actions).dy, closeTo(screenHeight, 1));
+    for (final label in ['한 판 더', '결과 복사', '홈으로']) {
+      expect(tester.getBottomLeft(find.text(label)).dy, lessThan(screenHeight));
+    }
+
+    // 내용을 끝까지 스크롤해도 버튼 위치는 그대로다.
+    final before = tester.getTopLeft(find.text('한 판 더'));
+    await tester.drag(find.byKey(const Key('result-scroll')), const Offset(0, -600));
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(find.text('한 판 더')), before);
+
+    // 스크롤하지 않고 바로 누를 수 있다.
+    await tester.tap(find.text('한 판 더'));
+    await tester.pumpAndSettle();
+    expect(find.text('4S 달성!'), findsNothing);
+    expect(find.text('혼자 하기 · 4자리'), findsOneWidget);
+  });
+
   testWidgets('이미 입력한 숫자 키는 눌리지 않는다', (tester) async {
     usePhoneSize(tester);
     final game = SoloGame(secret: '4725');
