@@ -53,112 +53,134 @@ class ResultScreen extends StatelessWidget {
     final gameId = summary.gameId;
 
     return PhoneFrame(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 40, 24, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'GAME SET',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                letterSpacing: 3,
-                color: AppColors.muted,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '4S 달성!',
-              textAlign: TextAlign.center,
-              style: AppFonts.display(
-                const TextStyle(
-                  fontSize: 56,
-                  color: AppColors.strike,
-                  height: 1.15,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${summary.tries}번 만에 맞혔어요',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 24),
-            _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 위쪽 내용만 스크롤된다.
+          Expanded(
+            child: SingleChildScrollView(
+              key: const Key('result-scroll'),
+              padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
-                    '정답',
-                    style: TextStyle(fontSize: 13, color: AppColors.muted),
+                    'GAME SET',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      letterSpacing: 3,
+                      color: AppColors.muted,
+                    ),
                   ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      for (var i = 0; i < summary.answer.length; i++) ...[
-                        if (i > 0) const SizedBox(width: 8),
-                        ScoreboardDigit(
-                          text: summary.answer[i],
-                          width: 52,
-                          height: 64,
-                          fontSize: 32,
+                  const SizedBox(height: 8),
+                  Text(
+                    '4S 달성!',
+                    textAlign: TextAlign.center,
+                    style: AppFonts.display(
+                      const TextStyle(
+                        fontSize: 56,
+                        color: AppColors.strike,
+                        height: 1.15,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${summary.tries}번 만에 맞혔어요',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 24),
+                  _Card(
+                    child: Column(
+                      children: [
+                        const Text(
+                          '정답',
+                          style: TextStyle(fontSize: 13, color: AppColors.muted),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            for (var i = 0; i < summary.answer.length; i++) ...[
+                              if (i > 0) const SizedBox(width: 8),
+                              ScoreboardDigit(
+                                text: summary.answer[i],
+                                width: 52,
+                                height: 64,
+                                fontSize: 32,
+                              ),
+                            ],
+                          ],
                         ),
                       ],
-                    ],
+                    ),
                   ),
+                  const SizedBox(height: 12),
+                  _RoundRecord(summary: summary),
+                  const SizedBox(height: 12),
+                  if (api != null && gameId != null)
+                    RankingForm(api: api, gameId: gameId)
+                  else
+                    const _Card(
+                      child: Text(
+                        '오프라인으로 플레이한 게임은 랭킹에 등록할 수 없어요',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 14, color: AppColors.muted),
+                      ),
+                    ),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            _RoundRecord(summary: summary),
-            const SizedBox(height: 12),
-            if (api != null && gameId != null)
-              RankingForm(api: api, gameId: gameId)
-            else
-              const _Card(
-                child: Text(
-                  '오프라인으로 플레이한 게임은 랭킹에 등록할 수 없어요',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: AppColors.muted),
-                ),
-              ),
-            const SizedBox(height: 28),
-            BigButton(
-              label: '한 판 더',
-              onPressed: () => Navigator.of(context).pushReplacement(
-                MaterialPageRoute<void>(
-                  builder: (_) => const SoloPlayScreen(),
-                ),
-              ),
+          ),
+          // 버튼은 화면 아래에 고정한다.
+          Container(
+            key: const Key('result-actions'),
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
+            decoration: const BoxDecoration(
+              color: AppColors.ground,
+              border: Border(top: BorderSide(color: AppColors.line)),
             ),
-            const SizedBox(height: 10),
-            Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  child: BigButton(
-                    label: '결과 복사',
-                    icon: Icons.ios_share,
-                    style: BigButtonStyle.tonal,
-                    height: 52,
-                    onPressed: () => _share(context),
+                BigButton(
+                  label: '한 판 더',
+                  onPressed: () => Navigator.of(context).pushReplacement(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const SoloPlayScreen(),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: BigButton(
-                    label: '홈으로',
-                    style: BigButtonStyle.tonal,
-                    height: 52,
-                    onPressed: () =>
-                        Navigator.of(context).popUntil((r) => r.isFirst),
-                  ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: BigButton(
+                        label: '결과 복사',
+                        icon: Icons.ios_share,
+                        style: BigButtonStyle.tonal,
+                        height: 52,
+                        onPressed: () => _share(context),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: BigButton(
+                        label: '홈으로',
+                        style: BigButtonStyle.tonal,
+                        height: 52,
+                        onPressed: () =>
+                            Navigator.of(context).popUntil((r) => r.isFirst),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
