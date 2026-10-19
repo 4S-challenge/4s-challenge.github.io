@@ -51,13 +51,13 @@ void main() {
     expect(find.text('오프라인 모드 · 랭킹 등록 불가'), findsOneWidget);
   });
 
-  testWidgets('준비 중인 메뉴는 안내 메시지를 띄운다', (tester) async {
+  testWidgets('친구와 대결: 서버가 없으면 준비 중 안내', (tester) async {
     usePhoneSize(tester);
     await tester.pumpWidget(const FourSApp());
 
     await tester.tap(find.text('친구와 대결'));
-    await tester.pump();
-    expect(find.text('친구와 대결은 준비 중이에요'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.text('대결 서버를 준비 중이에요'), findsOneWidget);
   });
 
   testWidgets('오프라인: 10번을 넘겨도 계속하고 총 시도 횟수를 보여준다', (tester) async {

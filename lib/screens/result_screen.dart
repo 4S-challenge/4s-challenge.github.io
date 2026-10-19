@@ -6,6 +6,7 @@ import '../game/solo_game.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import '../widgets/history.dart';
+import '../widgets/initials_input.dart';
 import 'ranking_screen.dart';
 import 'solo_play_screen.dart';
 
@@ -371,19 +372,6 @@ class _RankingFormState extends State<RankingForm> {
         ],
       ),
     );
-  }
-}
-
-/// 입력을 대문자로 바꾼다.
-class UpperCaseTextFormatter extends TextInputFormatter {
-  const UpperCaseTextFormatter();
-
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    return newValue.copyWith(text: newValue.text.toUpperCase());
   }
 }
 

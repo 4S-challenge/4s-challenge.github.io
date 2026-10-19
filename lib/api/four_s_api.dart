@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 
 import '../game/game_logic.dart';
+import '../versus/versus_socket.dart';
 
 /// 서버 요청 실패. [message]는 사용자에게 그대로 보여줘도 되는 문장이다.
 class ApiException implements Exception {
@@ -64,8 +65,12 @@ class RankingEntry {
 
 /// Cloudflare Worker 랭킹 서버 클라이언트.
 class FourSApi {
-  FourSApi({required this.baseUrl, http.Client? client})
-      : _client = client ?? http.Client();
+  FourSApi({
+    required this.baseUrl,
+    http.Client? client,
+    VersusSocketConnector? socketConnector,
+  })  : _client = client ?? http.Client(),
+        socketConnector = socketConnector ?? ChannelVersusSocket.connect;
 
   /// 빌드할 때 `--dart-define=API_BASE_URL=...`로 넘긴 주소. 없으면 `null`(오프라인).
   static FourSApi? fromEnvironment() {
@@ -78,6 +83,9 @@ class FourSApi {
 
   final Uri baseUrl;
   final http.Client _client;
+
+  /// 대결방 WebSocket을 여는 방법. 테스트에서 바꿔 끼운다.
+  final VersusSocketConnector socketConnector;
 
   Uri _uri(String path, [Map<String, String>? query]) {
     final base = baseUrl.path.endsWith('/')
@@ -156,6 +164,21 @@ class FourSApi {
       body: {'gameId': gameId, 'initials': initials},
     );
     return RankingEntry.fromJson(data['entry'] as Map<String, dynamic>);
+  }
+
+  /// 새 대결방을 만들고 방 코드를 돌려준다.
+  Future<String> createRoom() async {
+    final data = await _send('POST', '/api/versus/rooms');
+    return data['code'] as String;
+  }
+
+  /// 대결방 WebSocket 주소.
+  Uri roomSocketUri(String code, {required String name, String? playerId}) {
+    final uri = _uri('/api/versus/rooms/$code/ws', {
+      'name': name,
+      if (playerId != null) 'playerId': playerId,
+    });
+    return uri.replace(scheme: uri.scheme == 'https' ? 'wss' : 'ws');
   }
 
   Future<List<RankingEntry>> rankings({int limit = 50}) async {

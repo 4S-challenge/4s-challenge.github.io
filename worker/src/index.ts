@@ -1,7 +1,12 @@
 import { generateSecret, judge, validateGuess, validateInitials, DIGITS } from './game';
+import { VersusRoom } from './room';
+import { isRoomCode, randomRoomCode } from './versus';
+
+export { VersusRoom };
 
 export interface Env {
   DB: D1Database;
+  VERSUS: DurableObjectNamespace<VersusRoom>;
   ALLOWED_ORIGINS?: string;
 }
 
@@ -17,17 +22,19 @@ class HttpError extends Error {
   }
 }
 
-function corsHeaders(request: Request, env: Env): Record<string, string> {
-  const origin = request.headers.get('Origin');
-  if (!origin) return {};
+function isAllowedOrigin(origin: string, env: Env): boolean {
   const allowed = (env.ALLOWED_ORIGINS ?? '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
-  const ok = allowed.some(
+  return allowed.some(
     (entry) => origin === entry || (entry.endsWith('://localhost') && origin.startsWith(`${entry}:`)),
   );
-  if (!ok) return {};
+}
+
+function corsHeaders(request: Request, env: Env): Record<string, string> {
+  const origin = request.headers.get('Origin');
+  if (!origin || !isAllowedOrigin(origin, env)) return {};
   return {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -199,6 +206,28 @@ async function listRankings(url: URL, env: Env): Promise<Response> {
   return json({ entries: results.map((row, i) => toEntry(row, i + 1)) });
 }
 
+/** 새 대결방을 만들고 방 코드를 돌려준다. */
+async function createVersusRoom(env: Env): Promise<Response> {
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const code = randomRoomCode();
+    const stub = env.VERSUS.get(env.VERSUS.idFromName(code));
+    const res = await stub.fetch(`https://room/init?code=${code}`, { method: 'POST' });
+    if (res.status === 201) return json({ code }, 201);
+  }
+  throw new HttpError(503, '방을 만들지 못했어요. 잠시 후 다시 시도해 주세요');
+}
+
+/** 대결방 WebSocket 연결을 해당 방(Durable Object)으로 넘긴다. */
+function connectVersusRoom(request: Request, env: Env, code: string, url: URL): Promise<Response> | Response {
+  const origin = request.headers.get('Origin');
+  if (origin && !isAllowedOrigin(origin, env)) {
+    return new Response('forbidden', { status: 403 });
+  }
+  if (!isRoomCode(code)) throw new HttpError(400, '방 코드가 올바르지 않아요');
+  const stub = env.VERSUS.get(env.VERSUS.idFromName(code));
+  return stub.fetch(`https://room/ws${url.search}`, request);
+}
+
 async function route(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const key = `${request.method} ${url.pathname.replace(/\/+$/, '')}`;
@@ -213,8 +242,13 @@ async function route(request: Request, env: Env): Promise<Response> {
       return listRankings(url, env);
     case 'POST /api/rankings':
       return submitRanking(request, env);
-    default:
+    case 'POST /api/versus/rooms':
+      return createVersusRoom(env);
+    default: {
+      const ws = /^GET \/api\/versus\/rooms\/([A-Za-z0-9]+)\/ws$/.exec(key);
+      if (ws) return connectVersusRoom(request, env, ws[1].toUpperCase(), url);
       throw new HttpError(404, '없는 주소예요');
+    }
   }
 }
 
@@ -235,6 +269,8 @@ export default {
         response = json({ error: '잠시 후 다시 시도해 주세요' }, 500);
       }
     }
+    // WebSocket 연결 응답(101)은 그대로 돌려준다.
+    if (response.status === 101 || response.webSocket) return response;
     for (const [k, v] of Object.entries(cors)) response.headers.set(k, v);
     return response;
   },
