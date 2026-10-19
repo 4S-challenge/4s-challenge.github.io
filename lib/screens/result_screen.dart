@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../api/four_s_api.dart';
+import '../game/solo_game.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/history.dart';
 import 'ranking_screen.dart';
 import 'solo_play_screen.dart';
 
@@ -13,10 +15,14 @@ class SoloSummary {
     required this.tries,
     required this.answer,
     required this.elapsed,
+    this.history = const [],
     this.gameId,
   });
 
   final int tries;
+
+  /// 이번 판에 던진 숫자와 결과, 던진 순서대로.
+  final List<GuessRecord> history;
   final String answer;
   final Duration elapsed;
 
@@ -102,16 +108,11 @@ class ResultScreen extends StatelessWidget {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  _StatLine(label: '시도 횟수', value: '${summary.tries}회'),
-                  const SizedBox(height: 10),
-                  _StatLine(
-                    label: '걸린 시간',
-                    value: formatDuration(summary.elapsed),
-                  ),
                 ],
               ),
             ),
+            const SizedBox(height: 12),
+            _RoundRecord(summary: summary),
             const SizedBox(height: 12),
             if (api != null && gameId != null)
               RankingForm(api: api, gameId: gameId)
@@ -361,6 +362,168 @@ class UpperCaseTextFormatter extends TextInputFormatter {
     TextEditingValue newValue,
   ) {
     return newValue.copyWith(text: newValue.text.toUpperCase());
+  }
+}
+
+/// 이번 판 기록: 시도 횟수, 걸린 시간, 던진 숫자 목록.
+class _RoundRecord extends StatelessWidget {
+  const _RoundRecord({required this.summary});
+
+  final SoloSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final history = summary.history;
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            '이번 판 기록',
+            style: TextStyle(fontSize: 13, color: AppColors.muted),
+          ),
+          const SizedBox(height: 10),
+          _StatLine(label: '시도 횟수', value: '${summary.tries}회'),
+          const SizedBox(height: 10),
+          _StatLine(label: '걸린 시간', value: formatDuration(summary.elapsed)),
+          if (history.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    '입력한 숫자',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                ),
+                IconButton(
+                  key: const Key('history-expand'),
+                  tooltip: '크게 보기',
+                  onPressed: () => showHistoryDialog(context, summary),
+                  icon: const Icon(Icons.open_in_full, size: 20),
+                  color: AppColors.chalk,
+                  constraints:
+                      const BoxConstraints(minWidth: 44, minHeight: 44),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Container(
+              key: const Key('history-inline'),
+              height: 230,
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+              decoration: BoxDecoration(
+                color: AppColors.board,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.line, width: 2),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const HistoryHeader(),
+                  Expanded(
+                    child: HistoryList(records: history, highlightWin: true),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// 이번 판 기록만 크게 보여주는 팝업. 오른쪽 위 X로 닫는다.
+Future<void> showHistoryDialog(BuildContext context, SoloSummary summary) {
+  return showDialog<void>(
+    context: context,
+    barrierColor: Colors.black87,
+    builder: (context) => _HistoryDialog(summary: summary),
+  );
+}
+
+class _HistoryDialog extends StatelessWidget {
+  const _HistoryDialog({required this.summary});
+
+  final SoloSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: AppColors.ground,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AppColors.line, width: 2),
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 8, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '이번 판 기록 · ${summary.tries}회',
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    key: const Key('history-close'),
+                    tooltip: '닫기',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                    color: AppColors.chalk,
+                    constraints:
+                        const BoxConstraints(minWidth: 48, minHeight: 48),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 12, bottom: 12),
+                child: Text(
+                  '정답 ${summary.answer} · ${formatDuration(summary.elapsed)}',
+                  style: AppFonts.mono(
+                    const TextStyle(fontSize: 14, color: AppColors.muted),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  key: const Key('history-full'),
+                  margin: const EdgeInsets.only(right: 12),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  decoration: BoxDecoration(
+                    color: AppColors.board,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.line, width: 2),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const HistoryHeader(),
+                      Expanded(
+                        child: HistoryList(
+                          records: summary.history,
+                          highlightWin: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

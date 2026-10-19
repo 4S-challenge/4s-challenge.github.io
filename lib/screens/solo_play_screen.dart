@@ -6,6 +6,7 @@ import '../game/game_logic.dart';
 import '../game/solo_game.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/history.dart';
 import 'result_screen.dart';
 
 /// 혼자 하기: 숨겨진 네 자리 숫자를 맞힐 때까지 던진다.
@@ -75,6 +76,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
     _navigated = true;
     final summary = SoloSummary(
       tries: _game.tries,
+      history: _game.history,
       answer: _game.answer!,
       elapsed: _game.elapsed,
       gameId: _game.gameId,
@@ -231,14 +233,7 @@ class _HistoryBoard extends StatelessWidget {
         ),
       );
     } else {
-      body = ListView.separated(
-        controller: controller,
-        itemCount: history.length,
-        separatorBuilder: (context, index) =>
-            const Divider(height: 1, color: AppColors.panel),
-        itemBuilder: (context, i) =>
-            _HistoryRow(number: i + 1, record: history[i]),
-      );
+      body = HistoryList(records: history, controller: controller);
     }
 
     return Container(
@@ -251,72 +246,8 @@ class _HistoryBoard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: 6),
-            child: Row(
-              children: [
-                SizedBox(width: 40, child: _HeadText('회')),
-                Expanded(child: _HeadText('추리')),
-                _HeadText('결과'),
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: AppColors.line),
+          const HistoryHeader(),
           Expanded(child: body),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeadText extends StatelessWidget {
-  const _HeadText(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(fontSize: 12, color: AppColors.muted),
-    );
-  }
-}
-
-class _HistoryRow extends StatelessWidget {
-  const _HistoryRow({required this.number, required this.record});
-
-  final int number;
-  final GuessRecord record;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 46,
-      child: Row(
-        children: [
-          SizedBox(
-            width: 40,
-            child: Text(
-              '$number',
-              style: AppFonts.mono(
-                const TextStyle(fontSize: 14, color: AppColors.muted),
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              record.guess,
-              style: AppFonts.mono(
-                const TextStyle(
-                  fontSize: 22,
-                  letterSpacing: 6,
-                  color: AppColors.chalk,
-                ),
-              ),
-            ),
-          ),
-          ResultBadges(result: record.result),
         ],
       ),
     );

@@ -83,6 +83,51 @@ void main() {
     expect(find.text('오프라인으로 플레이한 게임은 랭킹에 등록할 수 없어요'), findsOneWidget);
   });
 
+  testWidgets('결과 화면에서 이번 판 기록을 보고, 크게 보기 팝업을 X로 닫는다', (tester) async {
+    usePhoneSize(tester);
+    await tester.pumpWidget(host(SoloPlayScreen(game: SoloGame(secret: '4725'))));
+
+    await throwGuess(tester, '1234');
+    await throwGuess(tester, '4790');
+    await throwGuess(tester, '4729');
+    await throwGuess(tester, '4725');
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+
+    // 결과 화면 안의 기록 목록
+    final inline = find.byKey(const Key('history-inline'));
+    await tester.ensureVisible(inline);
+    await tester.pumpAndSettle();
+    expect(find.text('이번 판 기록'), findsOneWidget);
+    for (final guess in ['1234', '4790', '4729']) {
+      expect(find.descendant(of: inline, matching: find.text(guess)), findsOneWidget);
+    }
+    expect(find.descendant(of: inline, matching: find.text('2B')), findsOneWidget);
+    expect(find.descendant(of: inline, matching: find.text('2S')), findsOneWidget);
+    expect(find.descendant(of: inline, matching: find.text('3S')), findsOneWidget);
+    expect(find.descendant(of: inline, matching: find.text('4S')), findsOneWidget);
+
+    // 크게 보기 → 기록만 보이는 팝업
+    await tester.tap(find.byKey(const Key('history-expand')));
+    await tester.pumpAndSettle();
+    final full = find.byKey(const Key('history-full'));
+    expect(full, findsOneWidget);
+    expect(find.text('이번 판 기록 · 4회'), findsOneWidget);
+    expect(find.descendant(of: full, matching: find.text('4725')), findsOneWidget);
+    expect(find.descendant(of: full, matching: find.text('3S')), findsOneWidget);
+
+    // 오른쪽 위 X로 닫기
+    final close = find.byKey(const Key('history-close'));
+    expect(
+      tester.getCenter(close).dx,
+      greaterThan(tester.getCenter(full).dx),
+    );
+    await tester.tap(close);
+    await tester.pumpAndSettle();
+    expect(full, findsNothing);
+    expect(find.text('4S 달성!'), findsOneWidget);
+  });
+
   testWidgets('이미 입력한 숫자 키는 눌리지 않는다', (tester) async {
     usePhoneSize(tester);
     final game = SoloGame(secret: '4725');
