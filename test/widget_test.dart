@@ -69,7 +69,9 @@ void main() {
     }
     expect(find.text('11회'), findsOneWidget);
 
+    // 기록이 길어지면 마지막 줄로 자동 스크롤된다.
     await throwGuess(tester, '4729');
+    await tester.pumpAndSettle();
     expect(find.text('3S'), findsOneWidget);
 
     await throwGuess(tester, '4725');
