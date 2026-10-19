@@ -19,6 +19,24 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
+
+# 앱 아이콘: dart run tool/make_icon.dart 로 SVG를 만들고 PNG로 바꾼 뒤
+# dart run flutter_launcher_icons 로 Android·iOS·웹에 적용한다 (README 참고).
+flutter_launcher_icons:
+  image_path: assets/icon/icon.png
+  android: true
+  adaptive_icon_background: "#08201A"
+  adaptive_icon_foreground: assets/icon/icon_foreground.png
+  adaptive_icon_foreground_inset: 0 # 앞면 이미지가 이미 안전 영역에 맞춰져 있음
+  adaptive_icon_monochrome: assets/icon/icon_monochrome.png
+  ios: true
+  remove_alpha_ios: true
+  background_color_ios: "#0E2A22"
+  web:
+    generate: true
+    background_color: "#0E2A22"
+    theme_color: "#0E2A22"

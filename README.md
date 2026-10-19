@@ -106,6 +106,22 @@ flutter build ipa --dart-define-from-file=config/prod.json         # iOS (macOS�
 
 Android 릴리스 빌드는 `API_BASE_URL`이 없으면 실패하도록 막아 두었습니다(`android/app/build.gradle.kts`). 실수로 오프라인 앱을 스토어에 올리지 않기 위해서입니다. 디버그 빌드는 주소 없이도 됩니다(오프라인 모드).
 
+### 앱 아이콘
+
+전광판 LED 도트로 쓴 "4S"와 B·S·O 표시등. 원본은 `tool/make_icon.dart`가 만드는 SVG(`assets/icon/`)이고, 여기서 PNG를 만든 뒤 `flutter_launcher_icons`(설정은 `pubspec.yaml`)로 Android(적응형·테마 아이콘 포함), iOS, 웹에 적용합니다.
+
+```bash
+dart run tool/make_icon.dart        # assets/icon/*.svg, web/favicon.svg
+# 각 SVG를 1024×1024 PNG로 저장 (예: Chrome 헤드리스, 투명 배경)
+chrome --headless=new --default-background-color=00000000 --window-size=1024,1024 \
+  --screenshot=assets/icon/icon.png assets/icon/icon.svg   # icon_foreground, icon_monochrome도 같게
+dart run flutter_launcher_icons
+```
+
+`flutter_launcher_icons` 실행 후 두 가지를 되돌려야 합니다.
+- `ios/Runner.xcodeproj/project.pbxproj`의 `ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS`가 `AppIcon`으로 바뀜 → `git checkout -- ios/Runner.xcodeproj/project.pbxproj`
+- `web/manifest.json`을 다시 써서 `favicon.svg` 항목과 들여쓰기가 사라짐 → 아이콘 목록만 남기고 되돌리기
+
 ## 배포
 
 `main`에 머지되면 GitHub Actions가 분석 → 테스트 → `flutter build web` → GitHub Pages 배포를 진행합니다. PR에서는 배포 없이 분석·테스트·빌드만 확인합니다.
