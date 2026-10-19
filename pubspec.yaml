@@ -1,0 +1,21 @@
+name: four_s_challenge
+description: "4S 챌린지 - 숫자야구. 숨겨진 네 자리 숫자를 추리하는 게임."
+publish_to: 'none'
+
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  google_fonts: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
