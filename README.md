@@ -27,6 +27,7 @@
 ```
 lib/
   main.dart, app.dart
+  invite_link.dart    # 초대 링크(?room=CODE)에서 방 코드 꺼내기 (웹 주소·앱 링크 공통)
   api/four_s_api.dart # 랭킹·대결 서버 클라이언트
   versus/             # 친구와 대결: 서버 상태 모델, WebSocket 연결·재접속
   game/
@@ -140,6 +141,24 @@ keyPassword=...
 ```
 
 `key.properties`가 없으면 릴리스 빌드도 디버그 키로 서명되고, 그 AAB는 Play 스토어에 올릴 수 없습니다.
+
+### 초대 링크로 앱 열기 (App Links / Universal Links)
+
+초대 링크 `https://4s-challenge.github.io/?room=CODE`를 누르면, 앱이 설치된 기기에서는 앱의 대결 화면이 방 코드가 채워진 채로 열립니다. 앱이 없거나 아래 설정 전이면 지금처럼 웹이 열립니다. 링크 처리는 `lib/invite_link.dart`, `lib/app.dart`(`app_links` 패키지)에 있습니다.
+
+Android·iOS가 "이 도메인은 이 앱 것"이라고 확인하려면 웹에 검증 파일이 있어야 합니다. 두 파일은 `main` 배포 때 CI가 저장소 변수로 만듭니다(**Settings → Secrets and variables → Actions → Variables**).
+
+| 변수 | 값 | 만들어지는 파일 |
+| --- | --- | --- |
+| `ANDROID_CERT_SHA256` | Play Console → 앱 → **테스트 및 출시 → 설정 → 앱 서명**의 SHA-256 인증서 지문. 업로드 키 지문도 쉼표로 이어 붙이면 직접 설치한 빌드에서도 동작 | `/.well-known/assetlinks.json` |
+| `APPLE_TEAM_ID` | Apple Developer → **Membership details**의 Team ID (10글자) | `/.well-known/apple-app-site-association` |
+
+변수를 넣은 뒤 `main`에 배포하고 확인합니다.
+
+- Android: `https://4s-challenge.github.io/.well-known/assetlinks.json` 이 열리는지, 기기에서 `adb shell pm get-app-links com.ohsang.fourschallenge` 결과가 `verified`인지
+- iOS: `https://app-site-association.cdn-apple.com/a/v1/4s-challenge.github.io` 에서 Apple이 파일을 가져갔는지 (반영까지 최대 하루)
+
+Android는 경로 `/`만 앱으로 받으므로 `/privacy.html` 같은 다른 페이지는 브라우저로 열립니다. iOS는 `?room=`이 붙은 링크만 앱으로 엽니다.
 
 ## 배포
 

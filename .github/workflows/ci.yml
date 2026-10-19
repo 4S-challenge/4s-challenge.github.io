@@ -178,6 +178,44 @@ jobs:
           fi
           flutter build web --release --base-href / --dart-define=API_BASE_URL="$API_BASE_URL"
 
+      # 초대 링크(?room=CODE)를 앱으로 여는 데 필요한 검증 파일. 저장소 변수가 있을 때만 만든다.
+      # - ANDROID_CERT_SHA256: 앱 서명 인증서 SHA-256 (여러 개면 쉼표로 구분. Play 앱 서명 키 + 업로드 키)
+      # - APPLE_TEAM_ID: Apple 개발자 팀 ID (10글자)
+      # upload-pages-artifact v4부터는 숨김 폴더(.well-known)가 기본으로 빠지니 올릴 때 include-hidden-files를 켤 것.
+      - name: App link verification files
+        env:
+          APP_ID: com.ohsang.fourschallenge
+          ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+        run: |
+          mkdir -p build/web/.well-known
+          if [ -n "$ANDROID_CERT_SHA256" ]; then
+            jq -n --arg pkg "$APP_ID" --arg certs "$ANDROID_CERT_SHA256" '[{
+              relation: ["delegate_permission/common.handle_all_urls"],
+              target: {
+                namespace: "android_app",
+                package_name: $pkg,
+                sha256_cert_fingerprints: ($certs | split(",") | map(gsub("[[:space:]]"; "") | ascii_upcase) | map(select(length > 0)))
+              }
+            }]' > build/web/.well-known/assetlinks.json
+            cat build/web/.well-known/assetlinks.json
+          else
+            echo "::notice::저장소 변수 ANDROID_CERT_SHA256이 없어 assetlinks.json을 만들지 않습니다. Android에서 초대 링크는 브라우저로 열립니다."
+          fi
+          if [ -n "$APPLE_TEAM_ID" ]; then
+            jq -n --arg app "$APPLE_TEAM_ID.$APP_ID" '{
+              applinks: {
+                details: [{
+                  appIDs: [$app],
+                  components: [{ "/": "/", "?": { room: "????" }, comment: "친구와 대결 초대 링크" }]
+                }]
+              }
+            }' > build/web/.well-known/apple-app-site-association
+            cat build/web/.well-known/apple-app-site-association
+          else
+            echo "::notice::저장소 변수 APPLE_TEAM_ID가 없어 apple-app-site-association을 만들지 않습니다. iOS에서 초대 링크는 브라우저로 열립니다."
+          fi
+
       - name: Upload Pages artifact
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
