@@ -1,0 +1,18 @@
+name = "four-s-challenge-api"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+# 시도 중에 버려진(맞히지 못한) 게임을 하루에 한 번 정리한다.
+[triggers]
+crons = ["17 18 * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "four-s-challenge"
+# 배포 시 GitHub Actions가 저장소 변수 D1_DATABASE_ID 값으로 바꿔 넣는다.
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[vars]
+# 랭킹 API를 호출할 수 있는 웹 출처. 앱(네이티브)은 Origin 헤더가 없어 영향 없음.
+ALLOWED_ORIGINS = "https://4s-challenge.github.io,http://localhost"

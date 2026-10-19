@@ -6,9 +6,6 @@ class GameRules {
 
   /// 비밀 숫자 자릿수.
   static const int digits = 4;
-
-  /// 혼자 하기 최대 시도 횟수.
-  static const int maxTries = 10;
 }
 
 /// 한 번의 추리에 대한 판정 결과.
