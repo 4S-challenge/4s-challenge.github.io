@@ -51,15 +51,20 @@ worker/               # Cloudflare Worker 랭킹 서버 (TypeScript + D1)
 
 ### 처음 한 번 설정
 
-1. Cloudflare 대시보드 → **Storage & Databases → D1** → 데이터베이스 생성 (이름 `four-s-challenge`) → Database ID 복사
-2. Cloudflare **API 토큰** 생성: "Edit Cloudflare Workers" 템플릿 + 권한에 **D1 Edit** 추가
-3. GitHub 저장소 **Settings → Secrets and variables → Actions**
-   - Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
-   - Variables: `D1_DATABASE_ID`
-4. `main`에 머지(또는 Actions에서 다시 실행)하면 마이그레이션 → Worker 배포가 진행됩니다
-5. 배포된 Worker 주소(예: `https://four-s-challenge-api.<계정>.workers.dev`)를 Variables의 `API_BASE_URL`에 넣고 다시 실행하면 웹이 랭킹 서버에 연결됩니다
+GitHub에 Cloudflare 시크릿 두 개만 넣으면 됩니다. 나머지(D1 데이터베이스 생성, 마이그레이션, Worker 배포, 웹에 서버 주소 연결)는 `main`에 배포될 때 GitHub Actions가 자동으로 합니다.
 
-설정이 없으면 Worker 배포는 건너뛰고 웹은 오프라인 모드로 배포됩니다.
+1. Cloudflare 대시보드 → 오른쪽 위 프로필 → **My Profile → API Tokens → Create Token**
+   - **Edit Cloudflare Workers** 템플릿 선택 → 권한에 **Account · D1 · Edit** 추가
+   - Account Resources: 사용할 계정, Zone Resources: All zones (도메인을 안 쓰면 그대로)
+2. Cloudflare 대시보드 **Workers & Pages** 화면 오른쪽의 **Account ID** 복사
+3. GitHub 저장소 **Settings → Secrets and variables → Actions → New repository secret**
+   - `CLOUDFLARE_API_TOKEN`: 1번 토큰
+   - `CLOUDFLARE_ACCOUNT_ID`: 2번 ID
+4. **Actions → CI & Deploy → Run workflow**(main) 실행 또는 `main`에 머지
+
+같은 Cloudflare 계정을 다른 프로젝트와 함께 써도 됩니다. Worker(`four-s-challenge-api`)와 D1(`four-s-challenge`)은 이름으로 분리되고, 토큰은 프로젝트별로 따로 만드는 것을 권장합니다.
+
+서버 주소를 직접 정하고 싶으면(예: 커스텀 도메인) 저장소 변수 `API_BASE_URL`을 넣으면 그 값을 우선 사용합니다. 시크릿이 없으면 Worker 배포는 건너뛰고 웹은 오프라인 모드로 배포됩니다.
 
 ## 로컬 실행
 

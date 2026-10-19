@@ -31,8 +31,96 @@ jobs:
       - run: npm run typecheck
       - run: npm test
 
+  # main에서만 실행. Cloudflare 시크릿 두 개(CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID)만 있으면
+  # D1 데이터베이스 생성 → 마이그레이션 → Worker 배포 → 주소 전달까지 자동으로 한다.
+  deploy-worker:
+    name: Deploy ranking server (Cloudflare)
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: worker
+    runs-on: ubuntu-latest
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+    defaults:
+      run:
+        working-directory: worker
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DB_NAME: four-s-challenge
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+
+      - name: Check Cloudflare settings
+        id: cf
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::notice::Cloudflare 시크릿(CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID)이 없어 랭킹 서버 배포를 건너뜁니다. 웹은 오프라인 모드로 배포됩니다."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.cf.outputs.ready == 'true'
+        run: npm ci
+
+      - name: Find or create D1 database
+        if: steps.cf.outputs.ready == 'true'
+        run: |
+          find_id() {
+            npx wrangler d1 list --json | jq -r --arg n "$DB_NAME" '.[] | select(.name == $n) | .uuid' | head -n1
+          }
+          id="$(find_id)"
+          if [ -z "$id" ]; then
+            echo "D1 데이터베이스 '$DB_NAME'이 없어 새로 만듭니다."
+            npx wrangler d1 create "$DB_NAME" --location apac
+            id="$(find_id)"
+          fi
+          if [ -z "$id" ]; then
+            echo "::error::D1 데이터베이스를 찾거나 만들지 못했습니다. API 토큰에 D1 Edit 권한이 있는지 확인하세요."
+            exit 1
+          fi
+          echo "D1 database id: $id"
+          sed -i "s/00000000-0000-0000-0000-000000000000/$id/" wrangler.toml
+
+      - name: Apply D1 migrations
+        if: steps.cf.outputs.ready == 'true'
+        run: npx wrangler d1 migrations apply DB --remote
+
+      - name: Deploy worker
+        id: deploy
+        if: steps.cf.outputs.ready == 'true'
+        run: |
+          npx wrangler deploy 2>&1 | tee deploy.log
+          url="$(grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' deploy.log | head -n1)"
+          if [ -z "$url" ]; then
+            echo "::warning::배포된 Worker 주소를 찾지 못했습니다. 저장소 변수 API_BASE_URL에 주소를 직접 넣어 주세요."
+          else
+            echo "Worker URL: $url"
+            echo "url=$url" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Health check
+        if: steps.deploy.outputs.url != ''
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          for i in $(seq 1 10); do
+            if curl -fsS "$URL/api/health"; then echo; exit 0; fi
+            sleep 3
+          done
+          echo "::error::랭킹 서버가 응답하지 않습니다: $URL/api/health"
+          exit 1
+
   build:
     name: Analyze, test, build web
+    needs: deploy-worker
+    # PR에서는 deploy-worker가 건너뛰어져도 실행한다.
+    if: ${{ !cancelled() && (needs.deploy-worker.result == 'success' || needs.deploy-worker.result == 'skipped') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -77,11 +165,18 @@ jobs:
           fi
           exit $status
 
-      # 저장소 변수 API_BASE_URL(랭킹 서버 주소)이 있으면 웹 빌드에 넣는다. 없으면 오프라인 모드.
+      # 랭킹 서버 주소: 저장소 변수 API_BASE_URL이 있으면 그 값, 없으면 방금 배포한 Worker 주소.
+      # 둘 다 없으면 오프라인 모드로 빌드한다.
       - name: Build web
         env:
-          API_BASE_URL: ${{ vars.API_BASE_URL }}
-        run: flutter build web --release --base-href / --dart-define=API_BASE_URL="$API_BASE_URL"
+          API_BASE_URL: ${{ vars.API_BASE_URL || needs.deploy-worker.outputs.url }}
+        run: |
+          if [ -n "$API_BASE_URL" ]; then
+            echo "랭킹 서버: $API_BASE_URL"
+          else
+            echo "랭킹 서버 주소가 없어 오프라인 모드로 빌드합니다."
+          fi
+          flutter build web --release --base-href / --dart-define=API_BASE_URL="$API_BASE_URL"
 
       - name: Upload Pages artifact
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
@@ -89,55 +184,10 @@ jobs:
         with:
           path: build/web
 
-  deploy-worker:
-    name: Deploy ranking server (Cloudflare)
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: worker
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: worker
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: worker/package-lock.json
-
-      - name: Check Cloudflare settings
-        id: cf
-        run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ] || [ -z "$D1_DATABASE_ID" ]; then
-            echo "::notice::Cloudflare 설정(CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, D1_DATABASE_ID)이 없어 랭킹 서버 배포를 건너뜁니다."
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - if: steps.cf.outputs.ready == 'true'
-        run: npm ci
-
-      - name: Set D1 database id
-        if: steps.cf.outputs.ready == 'true'
-        run: sed -i "s/00000000-0000-0000-0000-000000000000/$D1_DATABASE_ID/" wrangler.toml
-
-      - name: Apply D1 migrations
-        if: steps.cf.outputs.ready == 'true'
-        run: npx wrangler d1 migrations apply DB --remote
-
-      - name: Deploy worker
-        if: steps.cf.outputs.ready == 'true'
-        run: npx wrangler deploy
-
   deploy:
     name: Deploy to GitHub Pages
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: [build, deploy-worker]
+    if: ${{ !cancelled() && needs.build.result == 'success' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       pages: write
