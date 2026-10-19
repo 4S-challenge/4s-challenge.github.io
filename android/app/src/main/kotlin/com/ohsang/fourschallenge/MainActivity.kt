@@ -1,4 +1,4 @@
-package io.github.fourschallenge.four_s_challenge
+package com.ohsang.fourschallenge
 
 import io.flutter.embedding.android.FlutterActivity
 

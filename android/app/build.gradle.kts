@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "io.github.fourschallenge.four_s_challenge"
+    namespace = "com.ohsang.fourschallenge"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -18,7 +18,7 @@ android {
 
     defaultConfig {
         // 스토어에 한 번 올리면 바꿀 수 없다. iOS 번들 ID와 같게 맞춘다.
-        applicationId = "io.github.fourschallenge.fourschallenge"
+        applicationId = "com.ohsang.fourschallenge"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

@@ -92,7 +92,7 @@ flutter test
 
 ## 앱 (Android/iOS)
 
-- 패키지 ID: `io.github.fourschallenge.fourschallenge` (Android·iOS 공통, 스토어에 올린 뒤에는 바꿀 수 없음)
+- 패키지 ID: `com.ohsang.fourschallenge` (Android·iOS 공통, 스토어에 올린 뒤에는 바꿀 수 없음)
 - 홈 화면 이름: `4S 챌린지`
 
 앱에는 서버 주소가 빌드할 때 들어갑니다. 주소는 `config/prod.json`에 있고, 앱을 빌드·실행할 때는 항상 이 파일을 넘깁니다.
