@@ -142,6 +142,22 @@ keyPassword=...
 
 `key.properties`가 없으면 릴리스 빌드도 디버그 키로 서명되고, 그 AAB는 Play 스토어에 올릴 수 없습니다.
 
+### 앱 아이콘
+
+전광판 LED 도트로 쓴 "4S"와 B·S·O 표시등. 원본은 `tool/make_icon.dart`가 만드는 SVG(`assets/icon/`)이고, 여기서 PNG를 만든 뒤 `flutter_launcher_icons`(설정은 `pubspec.yaml`)로 Android(적응형·테마 아이콘 포함), iOS, 웹에 적용합니다.
+
+```bash
+dart run tool/make_icon.dart        # assets/icon/*.svg, web/favicon.svg
+# 각 SVG를 1024×1024 PNG로 저장 (예: Chrome 헤드리스, 투명 배경)
+chrome --headless=new --default-background-color=00000000 --window-size=1024,1024 \
+  --screenshot=assets/icon/icon.png assets/icon/icon.svg   # icon_foreground, icon_monochrome도 같게
+dart run flutter_launcher_icons
+```
+
+`flutter_launcher_icons` 실행 후 두 가지를 되돌려야 합니다.
+- `ios/Runner.xcodeproj/project.pbxproj`의 `ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS`가 `AppIcon`으로 바뀜 → `git checkout -- ios/Runner.xcodeproj/project.pbxproj`
+- `web/manifest.json`을 다시 써서 `favicon.svg` 항목과 들여쓰기가 사라짐 → 아이콘 목록만 남기고 되돌리기
+
 ### 초대 링크로 앱 열기 (App Links / Universal Links)
 
 초대 링크 `https://4s-challenge.github.io/?room=CODE`를 누르면, 앱이 설치된 기기에서는 앱의 대결 화면이 방 코드가 채워진 채로 열립니다. 앱이 없거나 아래 설정 전이면 지금처럼 웹이 열립니다. 링크 처리는 `lib/invite_link.dart`, `lib/app.dart`(`app_links` 패키지)에 있습니다.
