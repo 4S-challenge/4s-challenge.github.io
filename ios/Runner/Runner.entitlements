@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 초대 링크 https://4s-challenge.github.io/?room=CODE 를 앱으로 연다 (Universal Links).
+	     검증 파일: https://4s-challenge.github.io/.well-known/apple-app-site-association -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:4s-challenge.github.io</string>
+	</array>
+</dict>
+</plist>
