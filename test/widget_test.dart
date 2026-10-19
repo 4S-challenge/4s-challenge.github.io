@@ -42,6 +42,7 @@ void main() {
 
     expect(find.text('4S 챌린지'), findsOneWidget);
     expect(find.text('숫자야구'), findsOneWidget);
+    expect(find.text('개인정보처리방침'), findsOneWidget);
 
     await tester.tap(find.text('혼자 하기'));
     await tester.pumpAndSettle();

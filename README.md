@@ -91,11 +91,20 @@ flutter run -d chrome     # 웹
 flutter test
 ```
 
-Android/iOS 플랫폼 폴더는 아직 커밋되어 있지 않습니다. 앱으로 실행하려면 처음 한 번 아래 명령으로 생성하세요 (`lib/`는 그대로 유지됩니다).
+## 앱 (Android/iOS)
+
+- 패키지 ID: `com.ohsang.fourschallenge` (Android·iOS 공통, 스토어에 올린 뒤에는 바꿀 수 없음)
+- 홈 화면 이름: `4S 챌린지`
+
+앱에는 서버 주소가 빌드할 때 들어갑니다. 주소는 `config/prod.json`에 있고, 앱을 빌드·실행할 때는 항상 이 파일을 넘깁니다.
 
 ```bash
-flutter create --org io.github.fourschallenge --platforms=android,ios .
+flutter run --dart-define-from-file=config/prod.json
+flutter build appbundle --dart-define-from-file=config/prod.json   # Android (Play 스토어)
+flutter build ipa --dart-define-from-file=config/prod.json         # iOS (macOS에서)
 ```
+
+Android 릴리스 빌드는 `API_BASE_URL`이 없으면 실패하도록 막아 두었습니다(`android/app/build.gradle.kts`). 실수로 오프라인 앱을 스토어에 올리지 않기 위해서입니다. 디버그 빌드는 주소 없이도 됩니다(오프라인 모드).
 
 ## 배포
 

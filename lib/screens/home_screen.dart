@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import 'ranking_screen.dart';
 import 'solo_play_screen.dart';
 import 'versus_lobby_screen.dart';
+
+/// 스토어 등록에도 쓰는 개인정보처리방침 주소.
+final privacyPolicyUrl = Uri.parse('https://4s-challenge.github.io/privacy.html');
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.initialRoomCode});
@@ -148,6 +152,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: TextButton(
+                      onPressed: () => launchUrl(privacyPolicyUrl, mode: LaunchMode.externalApplication),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.muted,
+                        minimumSize: const Size(48, 48),
+                      ),
+                      child: const Text('개인정보처리방침', style: TextStyle(fontSize: 13)),
+                    ),
                   ),
                 ],
               ),
