@@ -108,6 +108,57 @@ flutter build ipa --dart-define-from-file=config/prod.json         # iOS (macOS�
 
 Android 릴리스 빌드는 `API_BASE_URL`이 없으면 실패하도록 막아 두었습니다(`android/app/build.gradle.kts`). 실수로 오프라인 앱을 스토어에 올리지 않기 위해서입니다. 디버그 빌드는 주소 없이도 됩니다(오프라인 모드).
 
+### Android 서명 (업로드 키)
+
+Play 스토어에는 **업로드 키**로 서명한 AAB를 올리고, Google이 실제 배포용 키(앱 서명 키)로 다시 서명합니다(Play 앱 서명). 업로드 키는 잃어버려도 Play Console에서 재설정할 수 있지만, 번거로우니 백업해 두세요.
+
+1. 업로드 키 만들기 (한 번만, 저장소 밖에 보관)
+
+   ```bash
+   keytool -genkeypair -v -keystore upload-keystore.jks -storetype PKCS12 \
+     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+   ```
+
+   `keytool`은 Android Studio에 들어 있습니다 (Windows: `C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe`). 키스토어 파일과 비밀번호는 비밀번호 관리자 등 안전한 곳에 백업합니다.
+
+2. GitHub 저장소 **Settings → Secrets and variables → Actions → New repository secret**
+
+   | 시크릿 | 값 |
+   | --- | --- |
+   | `ANDROID_KEYSTORE_BASE64` | 키스토어 파일을 base64로 바꾼 값. macOS/Linux: `base64 -i upload-keystore.jks`, Windows PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("upload-keystore.jks"))` |
+   | `ANDROID_KEYSTORE_PASSWORD` | 키스토어 비밀번호 |
+   | `ANDROID_KEY_ALIAS` | `upload` |
+   | `ANDROID_KEY_PASSWORD` | 키 비밀번호 (PKCS12면 키스토어 비밀번호와 같음) |
+
+3. `main`에 머지되면 GitHub Actions의 **Build Android app bundle**이 서명된 AAB를 만들어 실행 결과 페이지의 **Artifacts**(`app-release-<번호>`)에 30일 동안 올려 둡니다. 이 파일을 Play Console에 올립니다. 버전 코드는 Actions 실행 번호라 실행할 때마다 커집니다.
+
+로컬에서 서명하려면 `android/key.properties`를 만듭니다 (`.gitignore`에 있어 커밋되지 않음).
+
+```properties
+storeFile=C:/keys/upload-keystore.jks
+storePassword=...
+keyAlias=upload
+keyPassword=...
+```
+
+`key.properties`가 없으면 릴리스 빌드도 디버그 키로 서명되고, 그 AAB는 Play 스토어에 올릴 수 없습니다.
+
+### 앱 아이콘
+
+전광판 LED 도트로 쓴 "4S"와 B·S·O 표시등. 원본은 `tool/make_icon.dart`가 만드는 SVG(`assets/icon/`)이고, 여기서 PNG를 만든 뒤 `flutter_launcher_icons`(설정은 `pubspec.yaml`)로 Android(적응형·테마 아이콘 포함), iOS, 웹에 적용합니다.
+
+```bash
+dart run tool/make_icon.dart        # assets/icon/*.svg, web/favicon.svg
+# 각 SVG를 1024×1024 PNG로 저장 (예: Chrome 헤드리스, 투명 배경)
+chrome --headless=new --default-background-color=00000000 --window-size=1024,1024 \
+  --screenshot=assets/icon/icon.png assets/icon/icon.svg   # icon_foreground, icon_monochrome도 같게
+dart run flutter_launcher_icons
+```
+
+`flutter_launcher_icons` 실행 후 두 가지를 되돌려야 합니다.
+- `ios/Runner.xcodeproj/project.pbxproj`의 `ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS`가 `AppIcon`으로 바뀜 → `git checkout -- ios/Runner.xcodeproj/project.pbxproj`
+- `web/manifest.json`을 다시 써서 `favicon.svg` 항목과 들여쓰기가 사라짐 → 아이콘 목록만 남기고 되돌리기
+
 ### 초대 링크로 앱 열기 (App Links / Universal Links)
 
 초대 링크 `https://4s-challenge.github.io/?room=CODE`를 누르면, 앱이 설치된 기기에서는 앱의 대결 화면이 방 코드가 채워진 채로 열립니다. 앱이 없거나 아래 설정 전이면 지금처럼 웹이 열립니다. 링크 처리는 `lib/invite_link.dart`, `lib/app.dart`(`app_links` 패키지)에 있습니다.
