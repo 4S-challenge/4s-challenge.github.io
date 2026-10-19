@@ -143,7 +143,9 @@ void main() {
     expect(find.text('2S'), findsOneWidget);
     expect(find.text('2B'), findsOneWidget);
     expect(submitButton(tester).onPressed, isNull);
-    final key5 = tester.widget<FilledButton>(find.byKey(const Key('vkey-5')));
+    final key5 = tester.widget<FilledButton>(
+      find.descendant(of: find.byKey(const Key('vkey-5')), matching: find.byType(FilledButton)),
+    );
     expect(key5.onPressed, isNull);
 
     // 상대가 내 숫자에 던진 기록 보기
