@@ -270,7 +270,8 @@ class _RulesSheet extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             const Text(
-              '4S가 나오면 정답! 혼자 하기는 ${GameRules.maxTries}번 안에 맞혀야 해요.',
+              '4S가 나오면 정답! 횟수 제한 없이, 몇 번 만에 맞히는지가 기록돼요. '
+              '정답을 맞히면 이니셜 3글자로 랭킹에 올릴 수 있어요.',
               style: body,
             ),
             const SizedBox(height: 8),

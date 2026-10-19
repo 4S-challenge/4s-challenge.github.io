@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import 'ranking_screen.dart';
 import 'solo_play_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -112,7 +113,9 @@ class HomeScreen extends StatelessWidget {
                           label: '랭킹',
                           style: BigButtonStyle.tonal,
                           height: 52,
-                          onPressed: () => _comingSoon(context, '랭킹'),
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(builder: (_) => const RankingScreen()),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),

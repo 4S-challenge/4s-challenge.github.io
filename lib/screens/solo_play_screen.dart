@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../api/four_s_api.dart';
 import '../game/game_logic.dart';
 import '../game/solo_game.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/history.dart';
 import 'result_screen.dart';
 
-/// 혼자 하기: 컴퓨터가 정한 네 자리 숫자를 맞힌다.
+/// 혼자 하기: 숨겨진 네 자리 숫자를 맞힐 때까지 던진다.
 class SoloPlayScreen extends StatefulWidget {
   const SoloPlayScreen({super.key, this.game});
 
-  /// 테스트처럼 비밀 숫자를 정해 두고 싶을 때 넘긴다.
+  /// 테스트처럼 게임을 미리 만들어 넘기고 싶을 때 쓴다.
   final SoloGame? game;
 
   @override
@@ -19,24 +21,42 @@ class SoloPlayScreen extends StatefulWidget {
 }
 
 class _SoloPlayScreenState extends State<SoloPlayScreen> {
-  late final SoloGame _game = widget.game ?? SoloGame();
+  SoloGame? _ownGame;
   final _scroll = ScrollController();
   final _focus = FocusNode(debugLabel: 'solo-keyboard');
   bool _navigated = false;
 
+  SoloGame get _game => widget.game ?? _ownGame!;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (widget.game == null && _ownGame == null) {
+      _ownGame = SoloGame(api: ApiScope.of(context))..start();
+    }
+  }
+
   @override
   void dispose() {
-    if (widget.game == null) _game.dispose();
+    _ownGame?.dispose();
     _scroll.dispose();
     _focus.dispose();
     super.dispose();
   }
 
-  void _submit() {
-    final result = _game.submit();
-    if (result == null) return;
-
-    if (!_game.isPlaying) {
+  Future<void> _submit() async {
+    final result = await _game.submit();
+    if (!mounted) return;
+    if (result == null) {
+      final error = _game.error;
+      if (error != null) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(error)));
+      }
+      return;
+    }
+    if (_game.isWon) {
       _finish();
       return;
     }
@@ -55,10 +75,11 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
     if (_navigated) return;
     _navigated = true;
     final summary = SoloSummary(
-      won: _game.status == SoloStatus.won,
       tries: _game.tries,
-      secret: _game.secret,
+      history: _game.history,
+      answer: _game.answer!,
       elapsed: _game.elapsed,
+      gameId: _game.gameId,
     );
     // 마지막 판정을 잠깐 보여준 뒤 결과 화면으로.
     await Future<void>.delayed(const Duration(milliseconds: 600));
@@ -77,7 +98,8 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
       _game.backspace();
       return KeyEventResult.handled;
     }
-    if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter) {
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
       _submit();
       return KeyEventResult.handled;
     }
@@ -103,9 +125,13 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _Header(tries: _game.tries, maxTries: _game.maxTries),
+                _Header(tries: _game.tries),
+                if (!_game.isOnline && _game.phase != SoloPhase.starting)
+                  _OfflineNote(fellBack: _game.fellBackOffline),
                 const SizedBox(height: 12),
-                Expanded(child: _HistoryBoard(game: _game, controller: _scroll)),
+                Expanded(
+                  child: _HistoryBoard(game: _game, controller: _scroll),
+                ),
                 const SizedBox(height: 16),
                 _InputSlots(input: _game.input),
                 const SizedBox(height: 14),
@@ -120,10 +146,9 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.tries, required this.maxTries});
+  const _Header({required this.tries});
 
   final int tries;
-  final int maxTries;
 
   @override
   Widget build(BuildContext context) {
@@ -146,7 +171,8 @@ class _Header extends StatelessWidget {
         SizedBox(
           width: 48,
           child: Text(
-            '$tries/$maxTries',
+            '$tries회',
+            key: const Key('tries-count'),
             textAlign: TextAlign.right,
             style: AppFonts.mono(
               const TextStyle(fontSize: 14, color: AppColors.muted),
@@ -154,6 +180,26 @@ class _Header extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _OfflineNote extends StatelessWidget {
+  const _OfflineNote({required this.fellBack});
+
+  final bool fellBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Text(
+        fellBack
+            ? '서버에 연결할 수 없어 오프라인으로 진행해요 · 랭킹 등록 불가'
+            : '오프라인 모드 · 랭킹 등록 불가',
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 12, color: AppColors.muted),
+      ),
     );
   }
 }
@@ -167,6 +213,29 @@ class _HistoryBoard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final history = game.history;
+    final Widget body;
+    if (game.phase == SoloPhase.starting) {
+      body = const Center(
+        child: SizedBox(
+          width: 28,
+          height: 28,
+          child: CircularProgressIndicator(
+            strokeWidth: 3,
+            color: AppColors.strike,
+          ),
+        ),
+      );
+    } else if (history.isEmpty) {
+      body = const Center(
+        child: Text(
+          '아래 키패드로 숫자 4개를 입력해 보세요',
+          style: TextStyle(fontSize: 14, color: AppColors.muted),
+        ),
+      );
+    } else {
+      body = HistoryList(records: history, controller: controller);
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.board,
@@ -177,83 +246,8 @@ class _HistoryBoard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: 6),
-            child: Row(
-              children: [
-                SizedBox(width: 40, child: _HeadText('회')),
-                Expanded(child: _HeadText('추리')),
-                _HeadText('결과'),
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: AppColors.line),
-          Expanded(
-            child: history.isEmpty
-                ? const Center(
-                    child: Text(
-                      '아래 키패드로 숫자 4개를 입력해 보세요',
-                      style: TextStyle(fontSize: 14, color: AppColors.muted),
-                    ),
-                  )
-                : ListView.separated(
-                    controller: controller,
-                    itemCount: history.length,
-                    separatorBuilder: (_, __) =>
-                        const Divider(height: 1, color: AppColors.panel),
-                    itemBuilder: (context, i) => _HistoryRow(
-                      number: i + 1,
-                      record: history[i],
-                    ),
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeadText extends StatelessWidget {
-  const _HeadText(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(text, style: const TextStyle(fontSize: 12, color: AppColors.muted));
-  }
-}
-
-class _HistoryRow extends StatelessWidget {
-  const _HistoryRow({required this.number, required this.record});
-
-  final int number;
-  final GuessRecord record;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 46,
-      child: Row(
-        children: [
-          SizedBox(
-            width: 40,
-            child: Text(
-              '$number',
-              style: AppFonts.mono(
-                const TextStyle(fontSize: 14, color: AppColors.muted),
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              record.guess,
-              style: AppFonts.mono(
-                const TextStyle(fontSize: 22, letterSpacing: 6, color: AppColors.chalk),
-              ),
-            ),
-          ),
-          ResultBadges(result: record.result),
+          const HistoryHeader(),
+          Expanded(child: body),
         ],
       ),
     );
@@ -296,6 +290,8 @@ class _Keypad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final enabled = game.isPlaying && !game.busy;
+
     Widget row(List<String> digits) => Row(
           children: [
             for (var i = 0; i < digits.length; i++) ...[
@@ -303,7 +299,7 @@ class _Keypad extends StatelessWidget {
               Expanded(
                 child: _DigitKey(
                   digit: digits[i],
-                  used: game.isUsed(digits[i]),
+                  enabled: enabled && !game.isUsed(digits[i]),
                   onPressed: () => game.press(digits[i]),
                 ),
               ),
@@ -324,7 +320,8 @@ class _Keypad extends StatelessWidget {
                 height: 56,
                 child: FilledButton(
                   key: const Key('key-back'),
-                  onPressed: game.input.isEmpty ? null : game.backspace,
+                  onPressed:
+                      enabled && game.input.isNotEmpty ? game.backspace : null,
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.panel,
                     foregroundColor: AppColors.chalk,
@@ -356,10 +353,22 @@ class _Keypad extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: const Text(
-                    '던지기',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-                  ),
+                  child: game.busy
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: AppColors.muted,
+                          ),
+                        )
+                      : const Text(
+                          '던지기',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -373,12 +382,12 @@ class _Keypad extends StatelessWidget {
 class _DigitKey extends StatelessWidget {
   const _DigitKey({
     required this.digit,
-    required this.used,
+    required this.enabled,
     required this.onPressed,
   });
 
   final String digit;
-  final bool used;
+  final bool enabled;
   final VoidCallback onPressed;
 
   @override
@@ -387,7 +396,7 @@ class _DigitKey extends StatelessWidget {
       height: 56,
       child: FilledButton(
         key: Key('key-$digit'),
-        onPressed: used ? null : onPressed,
+        onPressed: enabled ? onPressed : null,
         style: FilledButton.styleFrom(
           padding: EdgeInsets.zero,
           backgroundColor: AppColors.panel,
@@ -396,7 +405,7 @@ class _DigitKey extends StatelessWidget {
           disabledForegroundColor: AppColors.disabled,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
-            side: BorderSide(color: used ? AppColors.panel : AppColors.line),
+            side: BorderSide(color: enabled ? AppColors.line : AppColors.panel),
           ),
         ),
         child: Text(digit, style: AppFonts.mono(const TextStyle(fontSize: 22))),
