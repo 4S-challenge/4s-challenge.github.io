@@ -269,7 +269,7 @@ class _RulesSheet extends StatelessWidget {
               text: '아웃 · 맞는 숫자가 하나도 없음',
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               '4S가 나오면 정답! 혼자 하기는 ${GameRules.maxTries}번 안에 맞혀야 해요.',
               style: body,
             ),
