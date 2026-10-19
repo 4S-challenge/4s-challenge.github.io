@@ -59,7 +59,19 @@ jobs:
           exit $status
 
       - name: Test
-        run: flutter test --reporter=github
+        run: |
+          set +e
+          flutter test --reporter=github --file-reporter=json:test-report.json
+          status=$?
+          if [ $status -ne 0 ]; then
+            # 실패한 테스트 이름과 오류를 PR 주석으로 남긴다.
+            jq -rs '
+              (map(select(.type == "testStart")) | map({key: (.test.id | tostring), value: .test.name}) | from_entries) as $names
+              | .[] | select(.type == "error")
+              | "::error title=\($names[(.testID | tostring)] // "test")::\((.error + "\n" + .stackTrace)[0:1500] | gsub("%"; "%25") | gsub("\r"; "") | gsub("\n"; "%0A"))"
+            ' test-report.json
+          fi
+          exit $status
 
       # 저장소 변수 API_BASE_URL(랭킹 서버 주소)이 있으면 웹 빌드에 넣는다. 없으면 오프라인 모드.
       - name: Build web
