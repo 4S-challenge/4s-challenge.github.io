@@ -67,8 +67,12 @@ jobs:
             # 실패한 테스트 이름과 오류를 PR 주석으로 남긴다.
             jq -rs '
               (map(select(.type == "testStart")) | map({key: (.test.id | tostring), value: .test.name}) | from_entries) as $names
-              | .[] | select(.type == "error")
-              | "::error title=\($names[(.testID | tostring)] // "test")::\((.error + "\n" + .stackTrace)[0:1500] | gsub("%"; "%25") | gsub("\r"; "") | gsub("\n"; "%0A"))"
+              | (map(select(.type == "error") | .testID) | unique) as $failed
+              | . as $all
+              | $failed[]
+              | . as $id
+              | ([$all[] | select(.testID == $id and (.type == "print" or .type == "error")) | (.message // .error // "")] | join("\n")) as $text
+              | "::error title=\($names[($id | tostring)] // "test")::\($text[0:3500] | gsub("%"; "%25") | gsub("\r"; "") | gsub("\n"; "%0A"))"
             ' test-report.json
           fi
           exit $status
