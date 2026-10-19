@@ -3,6 +3,7 @@
 숨겨진 네 자리 숫자를 추리하는 숫자야구 게임. Flutter 하나로 웹과 Android/iOS 앱을 함께 만듭니다.
 
 - 웹: https://4s-challenge.github.io
+- 개인정보처리방침: https://4s-challenge.github.io/privacy.html (`web/privacy.html`, 스토어 등록에 이 주소를 씀)
 
 ## 규칙
 
