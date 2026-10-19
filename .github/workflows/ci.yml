@@ -18,7 +18,7 @@ jobs:
     name: Analyze, test, build web
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: subosito/flutter-action@v2
         with:
@@ -27,8 +27,22 @@ jobs:
 
       - run: flutter --version
       - run: flutter pub get
-      - run: flutter analyze
-      - run: flutter test
+
+      - name: Analyze
+        run: |
+          set +e
+          dart analyze --format=machine --fatal-infos > analyze.txt 2>&1
+          status=$?
+          cat analyze.txt
+          # 분석 결과를 PR 주석으로 남긴다.
+          while IFS='|' read -r severity type code file line col length message; do
+            [ -z "$message" ] && continue
+            echo "::error file=${file#"$GITHUB_WORKSPACE"/},line=$line,col=$col::[$code] $message"
+          done < analyze.txt
+          exit $status
+
+      - name: Test
+        run: flutter test --reporter=github
       - run: flutter build web --release --base-href /
 
       - name: Upload Pages artifact
