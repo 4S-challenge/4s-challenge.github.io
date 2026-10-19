@@ -13,6 +13,15 @@ database_name = "four-s-challenge"
 database_id = "00000000-0000-0000-0000-000000000000"
 migrations_dir = "migrations"
 
+# 친구와 대결: 방 하나당 Durable Object 하나 (무료 플랜은 SQLite 기반 클래스 사용)
+[[durable_objects.bindings]]
+name = "VERSUS"
+class_name = "VersusRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["VersusRoom"]
+
 [vars]
 # 랭킹 API를 호출할 수 있는 웹 출처. 앱(네이티브)은 Origin 헤더가 없어 영향 없음.
 ALLOWED_ORIGINS = "https://4s-challenge.github.io,http://localhost"

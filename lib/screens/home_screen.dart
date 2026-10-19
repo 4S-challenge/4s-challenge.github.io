@@ -4,14 +4,34 @@ import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import 'ranking_screen.dart';
 import 'solo_play_screen.dart';
+import 'versus_lobby_screen.dart';
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key, this.initialRoomCode});
 
-  void _comingSoon(BuildContext context, String what) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('$what은 준비 중이에요')));
+  /// 초대 링크(?room=XXXX)로 들어왔을 때의 방 코드. 있으면 바로 대결 화면을 연다.
+  final String? initialRoomCode;
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    final code = widget.initialRoomCode;
+    if (code != null && code.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _openVersus(code);
+      });
+    }
+  }
+
+  void _openVersus([String? code]) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => VersusLobbyScreen(initialCode: code)),
+    );
   }
 
   @override
@@ -103,7 +123,7 @@ class HomeScreen extends StatelessWidget {
                     label: '친구와 대결',
                     icon: Icons.groups_outlined,
                     style: BigButtonStyle.outlined,
-                    onPressed: () => _comingSoon(context, '친구와 대결'),
+                    onPressed: _openVersus,
                   ),
                   const SizedBox(height: 12),
                   Row(

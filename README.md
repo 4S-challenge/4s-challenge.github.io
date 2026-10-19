@@ -19,18 +19,19 @@
 | 결과 화면 · 결과 복사 | ✅ |
 | 랭킹 등록 (이니셜 3글자) · 랭킹 보기 | ✅ — Cloudflare Workers + D1 (`worker/`) |
 | 웹 키보드 입력 (숫자, Backspace, Enter) | ✅ |
-| 친구와 대결 (온라인 1:1) | 준비 중 — Cloudflare Durable Objects |
+| 친구와 대결 (온라인 1:1, 방 코드·초대 링크) | ✅ — Cloudflare Durable Objects + WebSocket |
 
 ## 구조
 
 ```
 lib/
   main.dart, app.dart
-  api/four_s_api.dart # 랭킹 서버 클라이언트
+  api/four_s_api.dart # 랭킹·대결 서버 클라이언트
+  versus/             # 친구와 대결: 서버 상태 모델, WebSocket 연결·재접속
   game/
     game_logic.dart   # 판정·검증·비밀 숫자 생성 (순수 로직)
     solo_game.dart    # 혼자 하기 상태 (ChangeNotifier)
-  screens/            # 홈, 혼자 하기, 결과, 랭킹
+  screens/            # 홈, 혼자 하기, 결과, 랭킹, 대결 로비·대결방
   theme/app_theme.dart
   widgets/common.dart # 전광판 숫자, S/B/OUT 배지, 버튼, 규칙 시트
 test/                 # 로직·상태·위젯 테스트
@@ -48,6 +49,21 @@ worker/               # Cloudflare Worker 랭킹 서버 (TypeScript + D1)
 | `POST /api/solo/guess` | `{gameId, guess}` 판정. 맞히면 걸린 시간 반환 |
 | `POST /api/rankings` | `{gameId, initials}` 정답 맞힌 게임만, 한 번만, 24시간 안에 등록 |
 | `GET /api/rankings?limit=50` | 랭킹 목록 |
+
+## 친구와 대결
+
+- 번갈아 한 번씩 던지고, 상대 숫자를 먼저 4S로 맞히면 승리. 차례당 30초, 넘기면 차례가 넘어감
+- 각자 상대가 맞힐 비밀 숫자를 직접 정함 (서버만 알고, 끝난 뒤 공개)
+- 방 만들기 → 4글자 방 코드 또는 초대 링크(`https://4s-challenge.github.io/?room=CODE`)로 입장
+- 대결 중 나가면 기권패. 연결이 끊기면 자동으로 다시 연결하고 게임을 이어감
+- 끝난 뒤 둘 다 '한 판 더'를 누르면 선공을 바꿔 새 판
+
+| API | 설명 |
+| --- | --- |
+| `POST /api/versus/rooms` | 방 만들기 → `{code}` |
+| `GET /api/versus/rooms/{code}/ws?name=AAA[&playerId=…]` | 방 WebSocket. 서버 → `welcome`, `state`, `error` / 앱 → `setSecret`, `guess`, `rematch`, `leave` |
+
+방 하나가 Durable Object 하나이고, 방 규칙은 `worker/src/versus.ts`(순수 로직, 단위 테스트), 연결·저장·타이머는 `worker/src/room.ts`에 있습니다.
 
 ### 처음 한 번 설정
 

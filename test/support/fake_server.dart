@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:four_s_challenge/api/four_s_api.dart';
 import 'package:four_s_challenge/game/game_logic.dart';
+import 'package:four_s_challenge/versus/versus_socket.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
@@ -20,9 +22,21 @@ class FakeServer {
   final List<String> requests = [];
   int _nextGame = 0;
 
+  /// 방 만들기 요청에 돌려줄 방 코드.
+  String roomCode = 'K7Q2';
+
+  /// 앱이 연 대결방 연결들.
+  final List<FakeVersusSocket> sockets = [];
+
   FourSApi get api => FourSApi(
         baseUrl: Uri.parse('https://api.example.test'),
         client: MockClient(_handle),
+        socketConnector: (uri) async {
+          if (offline) throw Exception('offline');
+          final socket = FakeVersusSocket(uri);
+          sockets.add(socket);
+          return socket;
+        },
       );
 
   http.Response _json(Object body, [int status = 200]) => http.Response.bytes(
@@ -92,6 +106,9 @@ class FakeServer {
           'entry': {...entry, 'rank': rank},
         }, 201);
 
+      case 'POST /api/versus/rooms':
+        return _json({'code': roomCode}, 201);
+
       case 'GET /api/rankings':
         final sorted = [...rankings]
           ..sort((a, b) => (a['tries'] as int).compareTo(b['tries'] as int));
@@ -104,3 +121,94 @@ class FakeServer {
     return _json({'error': '없는 주소예요'}, 404);
   }
 }
+
+/// 테스트용 대결방 연결. [serverSend]로 서버 메시지를 흘려보내고 [sent]로 앱이 보낸 것을 본다.
+class FakeVersusSocket implements VersusSocket {
+  FakeVersusSocket(this.uri);
+
+  final Uri uri;
+  final _controller = StreamController<String>();
+  final List<Map<String, dynamic>> sent = [];
+  bool closed = false;
+
+  @override
+  Stream<String> get messages => _controller.stream;
+
+  @override
+  void send(String data) {
+    if (data == 'ping') return;
+    sent.add(jsonDecode(data) as Map<String, dynamic>);
+  }
+
+  @override
+  Future<void> close() async {
+    closed = true;
+    if (!_controller.isClosed) await _controller.close();
+  }
+
+  void serverSend(Map<String, Object?> message) => _controller.add(jsonEncode(message));
+
+  /// 서버 쪽에서 연결이 끊긴 것처럼.
+  Future<void> drop() => close();
+}
+
+/// 서버 state 메시지를 쉽게 만든다.
+Map<String, Object?> versusState({
+  String phase = 'waiting',
+  int you = 0,
+  int? turn,
+  int? turnDeadline,
+  int serverNow = 1792400000000,
+  int round = 1,
+  int? winner,
+  String? endReason,
+  Map<String, Object?>? lastEvent,
+  String myName = 'AAA',
+  String? mySecret,
+  List<Map<String, Object?>> myGuesses = const [],
+  bool myRematch = false,
+  Map<String, Object?>? opponent,
+}) =>
+    {
+      'type': 'state',
+      'code': 'K7Q2',
+      'phase': phase,
+      'round': round,
+      'serverNow': serverNow,
+      'you': you,
+      'turn': turn,
+      'turnDeadline': turnDeadline,
+      'firstSeat': 0,
+      'winner': winner,
+      'endReason': endReason,
+      'lastEvent': lastEvent,
+      'me': {
+        'name': myName,
+        'secret': mySecret,
+        'guesses': myGuesses,
+        'rematch': myRematch,
+      },
+      'opponent': opponent,
+    };
+
+Map<String, Object?> versusOpponent({
+  String name = 'BBB',
+  bool connected = true,
+  bool left = false,
+  bool ready = false,
+  bool rematch = false,
+  List<Map<String, Object?>> guesses = const [],
+  String? secret,
+}) =>
+    {
+      'name': name,
+      'connected': connected,
+      'left': left,
+      'ready': ready,
+      'rematch': rematch,
+      'guesses': guesses,
+      'secret': secret,
+    };
+
+Map<String, Object?> g(String guess, int strikes, int balls) =>
+    {'guess': guess, 'strikes': strikes, 'balls': balls};
