@@ -40,3 +40,4 @@ app.*.map.json
 
 # 스토어 스크린샷용 글꼴 (tool/store_screenshots.sh가 받음)
 store_screenshots/fonts/
+store_screenshots/out/
