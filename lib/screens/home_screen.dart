@@ -43,9 +43,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return PhoneFrame(
       child: LayoutBuilder(
         builder: (context, constraints) => SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+          // 아래 여백은 개인정보처리방침 버튼의 터치 영역(48)이 이미 있어 작게 둔다.
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
           child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: (constraints.maxHeight - 44).clamp(0.0, double.infinity)),
+            constraints: BoxConstraints(minHeight: (constraints.maxHeight - 24).clamp(0.0, double.infinity)),
             child: IntrinsicHeight(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -153,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Center(
                     child: TextButton(
                       onPressed: () => launchUrl(privacyPolicyUrl, mode: LaunchMode.externalApplication),
