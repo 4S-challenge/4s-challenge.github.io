@@ -226,10 +226,12 @@ void main() {
         // 커서·키보드 포커스 없이, 화면 맨 위(4S 달성!)부터 보이게 찍는다.
         FocusManager.instance.primaryFocus?.unfocus();
         tester
-            .state<ScrollableState>(find.descendant(
-              of: find.byKey(const Key('result-scroll')),
-              matching: find.byType(Scrollable),
-            ))
+            .state<ScrollableState>(find
+                .descendant(
+                  of: find.byKey(const Key('result-scroll')),
+                  matching: find.byType(Scrollable),
+                )
+                .first)
             .position
             .jumpTo(0);
         await settle(tester);
