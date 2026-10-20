@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:four_s_challenge/api/four_s_api.dart';
 import 'package:four_s_challenge/app.dart';
 import 'package:four_s_challenge/screens/versus_room_screen.dart';
+import 'package:four_s_challenge/share/link_sharer.dart';
 import 'package:four_s_challenge/theme/app_theme.dart';
 
 import 'support/fake_server.dart';
+import 'support/fake_sharer.dart';
 
 void main() {
-  setUp(() => AppFonts.useGoogleFonts = false);
+  setUp(() {
+    AppFonts.useGoogleFonts = false;
+    linkSharer = FakeLinkSharer();
+  });
 
   void usePhoneSize(WidgetTester tester) {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
@@ -72,7 +78,46 @@ void main() {
       expect(find.descendant(of: code, matching: find.text(ch)), findsOneWidget);
     }
     expect(find.text('상대를 기다리는 중…'), findsOneWidget);
+  });
+
+  testWidgets('초대하기: 공유 창이 있으면 기기 공유 창으로 링크를 보낸다', (tester) async {
+    final sharer = FakeLinkSharer(canShare: true);
+    linkSharer = sharer;
+    final server = FakeServer();
+    final socket = await openRoom(tester, server);
+    await send(tester, socket, versusState());
+
+    expect(find.text('초대하기'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('versus-invite')));
+    await tester.pump();
+
+    expect(sharer.calls, hasLength(1));
+    expect(sharer.calls.single.url, 'https://4s-challenge.github.io/?room=K7Q2');
+    expect(sharer.calls.single.text, contains('K7Q2'));
+    expect(find.byType(SnackBar), findsNothing);
+  });
+
+  testWidgets('초대하기: 공유 창이 없는 곳(PC·카카오톡 안 브라우저)은 링크 복사', (tester) async {
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.setData') {
+        copied = (call.arguments as Map)['text'] as String?;
+      }
+      return null;
+    });
+    addTearDown(() => tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null));
+    linkSharer = FakeLinkSharer(canShare: false);
+    final server = FakeServer();
+    final socket = await openRoom(tester, server);
+    await send(tester, socket, versusState());
+
     expect(find.text('링크 복사'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('versus-invite')));
+    await tester.pump();
+
+    expect(copied, contains('https://4s-challenge.github.io/?room=K7Q2'));
+    expect(find.text('초대 링크를 복사했어요. 친구에게 붙여넣어 보내 주세요'), findsOneWidget);
   });
 
   testWidgets('숫자 정하기: 네 자리를 골라 정하면 서버로 보낸다', (tester) async {

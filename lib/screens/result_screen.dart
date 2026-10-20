@@ -6,6 +6,7 @@ import '../game/solo_game.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import '../widgets/history.dart';
+import '../share/link_sharer.dart';
 import '../widgets/initials_input.dart';
 import 'ranking_screen.dart';
 import 'solo_play_screen.dart';
@@ -30,9 +31,14 @@ class SoloSummary {
   /// 서버에서 판정한 게임이면 ID가 있고, 랭킹에 등록할 수 있다.
   final String? gameId;
 
-  String get shareText => '4S 챌린지 - 숫자야구\n'
-      '$tries번 만에 4S 달성! (${formatDuration(elapsed)})\n'
-      'https://4s-challenge.github.io';
+  /// 공유할 때 링크 앞에 붙는 글.
+  String get shareMessage => '4S 챌린지 - 숫자야구\n'
+      '$tries번 만에 4S 달성! (${formatDuration(elapsed)})';
+
+  static const shareUrl = 'https://4s-challenge.github.io';
+
+  /// 복사할 때 쓰는 전체 글 (글 + 링크).
+  String get shareText => shareCopyText(shareMessage, shareUrl);
 }
 
 class ResultScreen extends StatelessWidget {
@@ -40,9 +46,14 @@ class ResultScreen extends StatelessWidget {
 
   final SoloSummary summary;
 
+  /// 결과 공유: 기기 공유 창, 없으면 복사.
   Future<void> _share(BuildContext context) async {
-    await Clipboard.setData(ClipboardData(text: summary.shareText));
-    if (!context.mounted) return;
+    final outcome = await linkSharer.share(
+      title: '4S 챌린지 - 숫자야구',
+      text: summary.shareMessage,
+      url: SoloSummary.shareUrl,
+    );
+    if (outcome != ShareOutcome.copied || !context.mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(const SnackBar(content: Text('결과를 복사했어요')));
@@ -159,7 +170,8 @@ class ResultScreen extends StatelessWidget {
                   children: [
                     Expanded(
                       child: BigButton(
-                        label: '결과 복사',
+                        key: const Key('result-share'),
+                        label: linkSharer.canShare ? '결과 공유' : '결과 복사',
                         icon: Icons.ios_share,
                         style: BigButtonStyle.tonal,
                         height: 52,

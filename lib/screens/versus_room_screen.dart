@@ -7,6 +7,7 @@ import '../api/four_s_api.dart';
 import '../game/solo_game.dart';
 import '../theme/app_theme.dart';
 import '../versus/versus_models.dart';
+import '../share/link_sharer.dart';
 import '../versus/versus_session.dart';
 import '../widgets/common.dart';
 import '../widgets/digit_pad.dart';
@@ -185,6 +186,18 @@ class _VersusRoomScreenState extends State<VersusRoomScreen> {
     _showNotice(done);
   }
 
+  /// 초대하기: 기기 공유 창, 없으면 링크 복사.
+  Future<void> _invite(String code) async {
+    final outcome = await linkSharer.share(
+      title: '4S 챌린지 - 숫자야구',
+      text: '4S 챌린지 - 숫자야구 대결해요! (방 코드 $code)',
+      url: roomShareLink(code),
+    );
+    if (outcome == ShareOutcome.copied) {
+      _showNotice('초대 링크를 복사했어요. 친구에게 붙여넣어 보내 주세요');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = _session;
@@ -282,14 +295,13 @@ class _VersusRoomScreenState extends State<VersusRoomScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: BigButton(
-                  label: '링크 복사',
-                  icon: Icons.link,
+                  key: const Key('versus-invite'),
+                  // 공유 창을 쓸 수 있으면 '초대하기', 없으면(PC 일부, 카카오톡 안 브라우저) '링크 복사'
+                  label: linkSharer.canShare ? '초대하기' : '링크 복사',
+                  icon: linkSharer.canShare ? Icons.ios_share : Icons.link,
                   style: BigButtonStyle.tonal,
                   height: 48,
-                  onPressed: () => _copy(
-                    '4S 챌린지 - 숫자야구 대결해요!\n${roomShareLink(code)}',
-                    '초대 링크를 복사했어요',
-                  ),
+                  onPressed: () => _invite(code),
                 ),
               ),
             ],
