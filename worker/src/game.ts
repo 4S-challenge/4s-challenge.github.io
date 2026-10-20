@@ -38,10 +38,30 @@ export function generateSecret(): string {
   return out.join('');
 }
 
-/** 랭킹에 쓸 수 없는 이니셜. */
-const BLOCKED_INITIALS = new Set([
-  'ASS', 'CUM', 'DIK', 'FAG', 'FUC', 'FUK', 'FUQ', 'KKK', 'NIG',
-  'NGR', 'SEX', 'SHT', 'TIT', 'VAG', 'XXX', 'JOT', 'SSI', 'SIB', 'BYC',
+/**
+ * 랭킹·대결방에 쓸 수 없는 이니셜 (영문 대문자 3글자).
+ * 공개 랭킹에 그대로 보이므로 욕설·성적 표현·혐오 표현의 약어를 막는다.
+ * 새로 막을 이니셜이 생기면 여기에 넣는다. 이미 등록된 랭킹은 따로 지워야 한다.
+ */
+export const BLOCKED_INITIALS: ReadonlySet<string> = new Set([
+  // 영어 욕설·성적 표현
+  'ASS', 'ANL', 'BCH', 'CNT', 'COK', 'CUM', 'DCK', 'DIC', 'DIK', 'FCK',
+  'FKU', 'FUC', 'FUK', 'FUQ', 'HOE', 'JIZ', 'PIS', 'PNS', 'RPE', 'SEX',
+  'SHT', 'SLT', 'SOB', 'TIT', 'TWT', 'VAG', 'WHR', 'WTF', 'XXX',
+  // 자해 조장 ("kill yourself")
+  'KYS',
+  // 인종·성소수자 혐오, 혐오 단체
+  'FAG', 'FGT', 'JAP', 'KKK', 'NGA', 'NGR', 'NIG',
+  // 한국어 욕설의 로마자·초성·자판 약어
+  'BYC', // 병신
+  'GSK', // 개새끼
+  'JNA', // 존나
+  'JOT', // 좆
+  'NGM', // 느금마
+  'SIB', // 씨발
+  'SSB', // ㅆㅂ
+  'SSI', // 씨
+  'TLQ', // 씨발 (한글 자판 tlqkf)
 ]);
 
 /** 영문 대문자 3글자인지 검사. 맞으면 null, 아니면 오류 메시지. */
