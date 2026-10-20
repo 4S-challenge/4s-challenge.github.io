@@ -29,17 +29,30 @@ class AppFonts {
 
   static bool useGoogleFonts = true;
 
+  /// [useGoogleFonts]가 false일 때 쓸 글꼴 이름. 스토어 스크린샷처럼 글꼴 파일을
+  /// 직접 불러온 경우에만 정한다. null이면 기본 글꼴(테스트용)을 쓴다.
+  static String? localDisplayFamily;
+  static String? localMonoFamily;
+  static String? localBodyFamily;
+
   /// 제목용 굵은 한글 글꼴.
-  static TextStyle display(TextStyle style) =>
-      useGoogleFonts ? GoogleFonts.blackHanSans(textStyle: style) : style;
+  static TextStyle display(TextStyle style) => useGoogleFonts
+      ? GoogleFonts.blackHanSans(textStyle: style)
+      : style.copyWith(fontFamily: localDisplayFamily);
 
   /// 전광판 숫자용 고정폭 글꼴.
   static TextStyle mono(TextStyle style) => useGoogleFonts
       ? GoogleFonts.spaceMono(textStyle: style.copyWith(fontWeight: FontWeight.w700))
-      : style.copyWith(fontFamily: 'monospace', fontWeight: FontWeight.w700);
+      : style.copyWith(
+          fontFamily: localMonoFamily ?? 'monospace',
+          // 고정폭 글꼴에 없는 한글('3회 시도' 등)은 본문 글꼴로 그린다.
+          fontFamilyFallback: localBodyFamily == null ? null : [localBodyFamily!],
+          fontWeight: FontWeight.w700,
+        );
 
-  static TextTheme body(TextTheme base) =>
-      useGoogleFonts ? GoogleFonts.ibmPlexSansKrTextTheme(base) : base;
+  static TextTheme body(TextTheme base) => useGoogleFonts
+      ? GoogleFonts.ibmPlexSansKrTextTheme(base)
+      : base.apply(fontFamily: localBodyFamily);
 }
 
 ThemeData buildAppTheme() {

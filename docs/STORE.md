@@ -79,21 +79,27 @@ Google Play와 App Store에 "4S 챌린지 - 숫자야구"를 올리기 위한 �
 
 iOS 앱은 **iPhone 전용**입니다(`TARGETED_DEVICE_FAMILY = 1`). iPad 스크린샷은 필요 없고, iPad에서는 iPhone 앱이 확대된 화면으로 실행됩니다.
 
-**추천 스크린샷 구성** (5장)
+**스크린샷** (6장, 만들어 둠)
 
-1. 홈: "4S 챌린지" 전광판
-2. 혼자 하기 진행 중: S/B/OUT 기록이 몇 줄 쌓인 화면
-3. 정답 화면: 4S + 시도 횟수 + 이니셜 등록
-4. 랭킹
-5. 친구와 대결: 서로 번갈아 던지는 화면
+| 순서 | 화면 | 문구 |
+| --- | --- | --- |
+| 1 | 홈 | 숨겨진 네 자리 숫자, 몇 번 만에 맞힐까? |
+| 2 | 혼자 하기 진행 중 | S·B·OUT 힌트로 추리하는 숫자야구 |
+| 3 | 친구와 대결 | 친구와 번갈아 던지는 1:1 실시간 대결 |
+| 4 | 정답 화면 | 정답을 맞히면 이니셜로 랭킹 등록 |
+| 5 | 랭킹 | 적은 시도, 빠른 시간으로 랭킹 1위에 도전 |
+| 6 | 친구 초대(방 코드) | 방 코드 하나로 친구를 바로 초대 |
 
-**찍는 방법**: 앱과 웹이 같은 화면이므로, 웹을 Chrome 개발자 도구 기기 모드로 띄워 찍을 수 있습니다.
+- Google Play: `store/screenshots/android/01~06.png` (1080×1920)
+- App Store 6.9인치: `store/screenshots/iphone/01~06.png` (1320×2868)
+- 문구 없는 화면만: 각 폴더의 `raw/`
 
-- Android: 기기 크기 `360×640`, 배율 `3` → 1080×1920
-- iPhone 6.9인치: 기기 크기 `440×956`, 배율 `3` → 1320×2868
-- 개발자 도구 메뉴(⋮) → **Capture screenshot**
+화면 속 기록·랭킹·이니셜은 보여주기용 예시 데이터입니다.
 
-실제 기기나 에뮬레이터에서 찍은 화면이면 더 좋습니다(상태 표시줄 포함). 스크린샷 위에 짧은 문구를 얹을 때도 상표·구단명은 쓰지 않습니다.
+**다시 만들기** (화면을 바꾼 뒤)
+
+1. GitHub **Actions → Store screenshots → Run workflow**: 실제 앱 화면을 Android·iPhone 크기로 렌더링해 Artifacts(`store-screenshots`)에 올립니다. 장면은 `store_screenshots/store_screenshots_test.dart`에 있습니다. 로컬에서는 `bash tool/store_screenshots.sh` (Flutter 필요)
+2. 받은 이미지를 `store_screenshots/out/`에 넣고 `python3 tools/make_store_screenshots.py`로 문구를 얹습니다. 문구는 스크립트의 `SHOTS`에서 바꿉니다.
 
 ## 4. 등급 (IARC / App Store 연령 등급)
 

@@ -898,7 +898,7 @@ class _Tabs extends StatelessWidget {
                 backgroundColor: selected ? AppColors.chalk : Colors.transparent,
                 foregroundColor: selected ? AppColors.ground : AppColors.chalk,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-                textStyle: TextStyle(
+                textStyle: (Theme.of(context).textTheme.labelLarge ?? const TextStyle()).copyWith(
                   fontSize: 14,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 ),

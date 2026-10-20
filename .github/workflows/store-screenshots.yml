@@ -1,0 +1,44 @@
+name: Store screenshots
+
+# 스토어 스크린샷을 실제 앱 화면으로 만든다 (Actions에서 직접 실행).
+# 만든 이미지는 Artifacts(store-screenshots)로 올라간다. 문구 얹기는 docs/STORE.md 참고.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+      - name: Render screenshots
+        run: |
+          set +e
+          bash tool/store_screenshots.sh --file-reporter=json:report.json
+          status=$?
+          if [ $status -ne 0 ]; then
+            jq -rs '
+              (map(select(.type == "testStart")) | map({key: (.test.id | tostring), value: .test.name}) | from_entries) as $names
+              | (map(select(.type == "error") | .testID) | unique) as $failed
+              | . as $all
+              | $failed[]
+              | . as $id
+              | ([$all[] | select(.testID == $id and (.type == "print" or .type == "error")) | (.message // .error // "")] | join("\n")) as $text
+              | "::error title=\($names[($id | tostring)] // "test")::\($text[0:3500] | gsub("%"; "%25") | gsub("\r"; "") | gsub("\n"; "%0A"))"
+            ' report.json
+          fi
+          exit $status
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: store-screenshots
+          path: store_screenshots/out

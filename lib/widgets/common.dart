@@ -155,7 +155,8 @@ class BigButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final shape =
         RoundedRectangleBorder(borderRadius: BorderRadius.circular(16));
-    final textStyle = TextStyle(
+    // 테마의 버튼 글꼴(본문 글꼴)을 이어받고 크기·굵기만 바꾼다.
+    final textStyle = (Theme.of(context).textTheme.labelLarge ?? const TextStyle()).copyWith(
       fontSize: height >= 60 ? 18 : 15,
       fontWeight: style == BigButtonStyle.tonal ? FontWeight.w500 : FontWeight.w700,
     );
