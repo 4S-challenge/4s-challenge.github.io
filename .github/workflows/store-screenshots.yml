@@ -28,14 +28,14 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: store-screenshots
-          path: store_screenshots/goldens
+          path: store_screenshots/out
 
       - name: Commit screenshots to the branch
         if: github.event_name == 'push'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f store_screenshots/goldens
+          git add -f store_screenshots/out
           if git diff --cached --quiet; then
             echo "변경 없음"
           else

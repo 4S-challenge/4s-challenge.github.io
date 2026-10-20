@@ -43,7 +43,12 @@ class AppFonts {
   /// 전광판 숫자용 고정폭 글꼴.
   static TextStyle mono(TextStyle style) => useGoogleFonts
       ? GoogleFonts.spaceMono(textStyle: style.copyWith(fontWeight: FontWeight.w700))
-      : style.copyWith(fontFamily: localMonoFamily ?? 'monospace', fontWeight: FontWeight.w700);
+      : style.copyWith(
+          fontFamily: localMonoFamily ?? 'monospace',
+          // 고정폭 글꼴에 없는 한글('3회 시도' 등)은 본문 글꼴로 그린다.
+          fontFamilyFallback: localBodyFamily == null ? null : [localBodyFamily!],
+          fontWeight: FontWeight.w700,
+        );
 
   static TextTheme body(TextTheme base) => useGoogleFonts
       ? GoogleFonts.ibmPlexSansKrTextTheme(base)

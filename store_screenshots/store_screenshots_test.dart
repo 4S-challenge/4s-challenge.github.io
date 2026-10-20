@@ -1,15 +1,17 @@
 // 스토어 스크린샷을 실제 앱 화면으로 만든다.
 //
 //   bash tool/store_screenshots.sh      (글꼴을 받고 아래 명령을 실행)
-//   flutter test store_screenshots --update-goldens
+//   flutter test store_screenshots
 //
-// 결과: store_screenshots/goldens/<기기>/<번호>-<이름>.png
+// 결과: store_screenshots/out/<기기>/<번호>-<이름>.png (실제 픽셀 크기)
 // 글꼴 파일은 store_screenshots/fonts/에 있어야 한다 (스크립트가 받아 둠, 커밋하지 않음).
 // 화면 속 기록·랭킹은 보여주기용 예시 데이터다.
 
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:four_s_challenge/api/four_s_api.dart';
@@ -46,11 +48,17 @@ Future<void> _loadFont(String family, List<String> files) async {
 }
 
 Future<void> _loadFonts() async {
-  await _loadFont('IBMPlexSansKR', [
+  const body = [
     'IBMPlexSansKR-Regular.ttf',
     'IBMPlexSansKR-Medium.ttf',
     'IBMPlexSansKR-Bold.ttf',
-  ]);
+  ];
+  await _loadFont('IBMPlexSansKR', body);
+  // 글꼴을 따로 정하지 않은 글자(버튼 등)는 테스트 기본 글꼴로 그려져 한글이 네모가 된다.
+  // 실제 기기에서는 시스템 글꼴이 쓰이므로, 여기서는 기본 글꼴 이름에 본문 글꼴을 넣는다.
+  for (final family in ['FlutterTest', 'Roboto', '.SF UI Text', '.SF Pro Text']) {
+    await _loadFont(family, body);
+  }
   await _loadFont('BlackHanSans', ['BlackHanSans-Regular.ttf']);
   await _loadFont('SpaceMono', ['SpaceMono-Bold.ttf']);
 
@@ -106,10 +114,15 @@ void main() {
         );
 
     Future<void> shot(WidgetTester tester, String name) async {
-      await expectLater(
-        find.byKey(_shotKey),
-        matchesGoldenFile('goldens/$device/$name.png'),
-      );
+      final boundary = tester.renderObject<RenderRepaintBoundary>(find.byKey(_shotKey));
+      await tester.runAsync(() async {
+        final image = await boundary.toImage(pixelRatio: spec.ratio);
+        final png = await image.toByteData(format: ui.ImageByteFormat.png);
+        final file = File('store_screenshots/out/$device/$name.png');
+        file.parent.createSync(recursive: true);
+        file.writeAsBytesSync(png!.buffer.asUint8List());
+        image.dispose();
+      });
     }
 
     Future<void> settle(WidgetTester tester) async {

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 스토어 스크린샷 만들기: 글꼴을 받고 실제 앱 화면을 이미지로 렌더링한다.
-# 결과: store_screenshots/goldens/{android,iphone}/*.png
+# 결과: store_screenshots/out/{android,iphone}/*.png
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -17,4 +17,5 @@ for path in \
   [ -s "$file" ] || curl -fsSL "$BASE/$path" -o "$file"
 done
 
-flutter test store_screenshots --update-goldens
+rm -rf store_screenshots/out
+flutter test store_screenshots
