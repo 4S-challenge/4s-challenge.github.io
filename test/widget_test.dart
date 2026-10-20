@@ -4,12 +4,18 @@ import 'package:four_s_challenge/api/four_s_api.dart';
 import 'package:four_s_challenge/app.dart';
 import 'package:four_s_challenge/game/solo_game.dart';
 import 'package:four_s_challenge/screens/solo_play_screen.dart';
+import 'package:four_s_challenge/share/link_sharer.dart';
 import 'package:four_s_challenge/theme/app_theme.dart';
 
 import 'support/fake_server.dart';
+import 'support/fake_sharer.dart';
 
 void main() {
-  setUp(() => AppFonts.useGoogleFonts = false);
+  setUp(() {
+    AppFonts.useGoogleFonts = false;
+    // 기본은 공유 창이 없는 환경(결과 복사). 공유 창 테스트는 따로 바꾼다.
+    linkSharer = FakeLinkSharer(canShare: false);
+  });
 
   void usePhoneSize(WidgetTester tester) {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
@@ -157,6 +163,24 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('4S 달성!'), findsNothing);
     expect(find.text('혼자 하기 · 4자리'), findsOneWidget);
+  });
+
+  testWidgets('결과 공유: 공유 창이 있으면 기기 공유 창으로 보낸다', (tester) async {
+    usePhoneSize(tester);
+    final sharer = FakeLinkSharer(canShare: true);
+    linkSharer = sharer;
+    await tester.pumpWidget(host(SoloPlayScreen(game: SoloGame(secret: '4725'))));
+    await throwGuess(tester, '1234');
+    await throwGuess(tester, '4725');
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+
+    expect(find.text('결과 공유'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('result-share')));
+    await tester.pump();
+    expect(sharer.calls.single.text, contains('2번 만에 4S 달성!'));
+    expect(sharer.calls.single.url, 'https://4s-challenge.github.io');
+    expect(find.text('결과를 복사했어요'), findsNothing);
   });
 
   testWidgets('이미 입력한 숫자 키는 눌리지 않는다', (tester) async {
