@@ -144,8 +144,10 @@ void main() {
 
       testWidgets('2 혼자 하기', (tester) async {
         useDevice(tester);
-        final game = SoloGame(secret: '4725');
-        for (final guess in ['1234', '9031', '5674', '4790', '4752']) {
+        // 서버에 연결된 게임 (오프라인 표시 없이)
+        final game = SoloGame(api: FakeServer(secret: '4725').api);
+        await game.start();
+        for (final guess in ['1234', '9031', '4790', '4752']) {
           for (final d in guess.split('')) {
             game.press(d);
           }
@@ -197,7 +199,7 @@ void main() {
       testWidgets('4 정답과 랭킹 등록', (tester) async {
         useDevice(tester);
         final history = [
-          for (final guess in ['1234', '9031', '5674', '4790', '4752', '4725'])
+          for (final guess in ['1234', '9031', '4790', '4752', '4725'])
             GuessRecord(guess: guess, result: NumberBaseball.judge('4725', guess)),
         ];
         await tester.pumpWidget(host(
@@ -219,8 +221,15 @@ void main() {
         );
         await tester.enterText(field, 'KIM');
         await settle(tester);
-        // 커서·키보드 포커스 없이 찍는다.
+        // 커서·키보드 포커스 없이, 화면 맨 위(4S 달성!)부터 보이게 찍는다.
         FocusManager.instance.primaryFocus?.unfocus();
+        tester
+            .state<ScrollableState>(find.descendant(
+              of: find.byKey(const Key('result-scroll')),
+              matching: find.byType(Scrollable),
+            ))
+            .position
+            .jumpTo(0);
         await settle(tester);
         await shot(tester, '4-result');
       });
