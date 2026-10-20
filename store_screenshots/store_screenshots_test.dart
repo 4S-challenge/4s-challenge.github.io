@@ -146,13 +146,15 @@ void main() {
         useDevice(tester);
         // 서버에 연결된 게임 (오프라인 표시 없이)
         final game = SoloGame(api: FakeServer(secret: '4725').api);
-        await game.start();
-        for (final guess in ['1234', '9031', '4790', '4752']) {
-          for (final d in guess.split('')) {
-            game.press(d);
+        await tester.runAsync(() async {
+          await game.start();
+          for (final guess in ['1234', '9031', '4790', '4752']) {
+            for (final d in guess.split('')) {
+              game.press(d);
+            }
+            await game.submit();
           }
-          await game.submit();
-        }
+        });
         game
           ..press('4')
           ..press('7');

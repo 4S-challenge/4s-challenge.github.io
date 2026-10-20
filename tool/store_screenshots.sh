@@ -18,4 +18,4 @@ for path in \
 done
 
 rm -rf store_screenshots/out
-flutter test store_screenshots
+flutter test store_screenshots "$@"
