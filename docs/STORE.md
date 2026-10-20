@@ -116,7 +116,7 @@ Play Console **정책 › 앱 콘텐츠 › 콘텐츠 등급**에서 IARC 설문
 
 예상 결과: 전체이용가(GRAC), PEGI 3, ESRB Everyone, 그리고 "사용자 상호작용" 표시가 붙을 수 있습니다.
 
-이니셜 3글자로 욕설 약어를 만들 수 없도록 서버가 금지 목록으로 거릅니다(`worker/src/game.ts`의 `BLOCKED_INITIALS`, 랭킹 등록과 대결방 이름에 모두 적용). 새로 막을 이니셜이 생기면 목록에 추가하고, 이미 올라간 랭킹은 D1에서 따로 지웁니다.
+이니셜 3글자로 욕설 약어를 만들 수 없도록 서버가 금지 목록으로 거릅니다(`worker/src/game.ts`의 `BLOCKED_INITIALS`, 랭킹 등록과 대결방 이름에 모두 적용). 새로 막을 이니셜이 생기면 목록에 추가하고, 이미 올라간 랭킹은 D1에서 따로 지웁니다. 랭킹 전체를 비우려면 GitHub **Actions → Clear rankings → Run workflow**에서 확인란에 `DELETE`를 입력해 실행합니다(지우기 전 기록은 Artifacts에 백업).
 
 App Store Connect의 연령 등급 설문도 같은 기준으로 모두 "없음"으로 답합니다. 사용자 생성 콘텐츠 관련 질문에는 이니셜 표시를 기준으로 답합니다. 예상 결과: 4+.
 
