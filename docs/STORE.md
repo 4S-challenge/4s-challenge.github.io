@@ -70,10 +70,12 @@ Google Play와 App Store에 "4S 챌린지 - 숫자야구"를 올리기 위한 �
 
 | 자료 | Google Play | App Store |
 | --- | --- | --- |
-| 앱 아이콘 | 512×512 PNG (`assets/icon/icon.png`를 512로 줄여 사용) | 빌드에 포함 (1024×1024, 자동) |
-| 대표 이미지 | **1024×500 PNG/JPG 필수** | 없음 |
+| 앱 아이콘 | 512×512 PNG → [`store/icon-512.png`](../store/icon-512.png) | 빌드에 포함 (1024×1024, 자동) |
+| 대표 이미지 | **1024×500 PNG/JPG 필수** → [`store/feature-graphic-1024x500.png`](../store/feature-graphic-1024x500.png) | 없음 |
 | 휴대폰 스크린샷 | 2~8장, 9:16 권장 (예: 1080×1920) | 6.9인치 iPhone **1320×2868** (또는 1290×2796) 필수, 최대 10장 |
 | 태블릿 스크린샷 | 선택 (안 올림) | 필요 없음 (iPhone 전용) |
+
+`store/`의 두 이미지는 `python3 tools/make_store_graphics.py`로 다시 만들 수 있습니다(아이콘을 바꾼 뒤 실행). 대표 이미지는 Play에서 가장자리가 잘리거나 위에 재생 버튼이 얹힐 수 있어 중요한 글자를 가운데 쪽에 두었습니다.
 
 iOS 앱은 **iPhone 전용**입니다(`TARGETED_DEVICE_FAMILY = 1`). iPad 스크린샷은 필요 없고, iPad에서는 iPhone 앱이 확대된 화면으로 실행됩니다.
 
