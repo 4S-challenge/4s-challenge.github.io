@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateSecret, judge, validateGuess, validateInitials } from '../src/game';
+import { BLOCKED_INITIALS, generateSecret, judge, validateGuess, validateInitials } from '../src/game';
 
 describe('judge', () => {
   it('S/B/OUT을 판정한다', () => {
@@ -40,6 +40,21 @@ describe('validateInitials', () => {
   });
 
   it('부적절한 이니셜은 막는다', () => {
-    expect(validateInitials('ASS')).not.toBeNull();
+    expect(validateInitials('ASS')).toBe('쓸 수 없는 이니셜이에요');
+    for (const initials of BLOCKED_INITIALS) {
+      expect(validateInitials(initials), initials).toBe('쓸 수 없는 이니셜이에요');
+    }
+  });
+
+  it('금지 목록은 모두 영문 대문자 3글자다', () => {
+    for (const initials of BLOCKED_INITIALS) {
+      expect(initials).toMatch(/^[A-Z]{3}$/);
+    }
+  });
+
+  it('흔한 이니셜은 막지 않는다', () => {
+    for (const initials of ['AAA', 'ABC', 'KIM', 'LEE', 'PAK', 'CHO', 'JUN', 'SON', 'YOO', 'HAN', 'JAY', 'SKY', 'ACE', 'MVP', 'BOB']) {
+      expect(validateInitials(initials), initials).toBeNull();
+    }
   });
 });

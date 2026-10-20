@@ -59,13 +59,6 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>UISupportedInterfaceOrientations~ipad</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
 	<!-- HTTPS(표준 암호화)만 쓰므로 App Store 수출 규정 질문이 매번 나오지 않게 한다. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
