@@ -37,3 +37,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# 스토어 스크린샷용 글꼴 (tool/store_screenshots.sh가 받음)
+store_screenshots/fonts/
