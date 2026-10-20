@@ -1,0 +1,61 @@
+name: Clear rankings
+
+# 랭킹 기록을 모두 지운다 (되돌릴 수 없음). Actions에서 직접 실행하고, 확인란에 DELETE를 입력해야 한다.
+# 지우기 전 기록은 Artifacts(rankings-backup-<번호>)에 JSON으로 90일 동안 남는다.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: '정말 지우려면 DELETE 입력'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  clear:
+    if: inputs.confirm == 'DELETE'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DB_NAME: four-s-challenge
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - run: npm ci
+
+      - name: Find D1 database
+        run: |
+          id="$(npx wrangler d1 list --json | jq -r --arg n "$DB_NAME" '.[] | select(.name == $n) | .uuid' | head -n1)"
+          if [ -z "$id" ]; then echo "::error::D1 데이터베이스 '$DB_NAME'을 찾지 못했습니다."; exit 1; fi
+          sed -i "s/00000000-0000-0000-0000-000000000000/$id/" wrangler.toml
+
+      - name: Back up rankings
+        run: |
+          npx wrangler d1 execute DB --remote --json \
+            --command "SELECT * FROM rankings ORDER BY tries, duration_ms, created_at, id" > rankings-backup.json
+          count="$(jq '.[0].results | length' rankings-backup.json)"
+          echo "지우기 전 랭킹 기록: ${count}건"
+          echo "::notice::지우기 전 랭킹 기록 ${count}건 (백업: Artifacts)"
+          jq -r '.[0].results[] | "\(.id)\t\(.initials)\t\(.tries)회\t\(.duration_ms)ms"' rankings-backup.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rankings-backup-${{ github.run_number }}
+          path: worker/rankings-backup.json
+          retention-days: 90
+
+      - name: Delete rankings
+        run: |
+          npx wrangler d1 execute DB --remote --command "DELETE FROM rankings"
+          left="$(npx wrangler d1 execute DB --remote --json --command "SELECT COUNT(*) AS n FROM rankings" | jq '.[0].results[0].n')"
+          echo "::notice::삭제 후 남은 랭킹 기록: ${left}건"
+          [ "$left" = "0" ]
