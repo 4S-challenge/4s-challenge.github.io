@@ -23,7 +23,23 @@ jobs:
           cache: true
 
       - run: flutter pub get
-      - run: bash tool/store_screenshots.sh --reporter=github
+      - name: Render screenshots
+        run: |
+          set +e
+          bash tool/store_screenshots.sh --file-reporter=json:report.json
+          status=$?
+          if [ $status -ne 0 ]; then
+            jq -rs '
+              (map(select(.type == "testStart")) | map({key: (.test.id | tostring), value: .test.name}) | from_entries) as $names
+              | (map(select(.type == "error") | .testID) | unique) as $failed
+              | . as $all
+              | $failed[]
+              | . as $id
+              | ([$all[] | select(.testID == $id and (.type == "print" or .type == "error")) | (.message // .error // "")] | join("\n")) as $text
+              | "::error title=\($names[($id | tostring)] // "test")::\($text[0:3500] | gsub("%"; "%25") | gsub("\r"; "") | gsub("\n"; "%0A"))"
+            ' report.json
+          fi
+          exit $status
 
       - uses: actions/upload-artifact@v4
         with:
