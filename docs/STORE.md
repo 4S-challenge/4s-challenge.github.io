@@ -10,7 +10,7 @@ Google Play와 App Store에 "4S 챌린지 - 숫자야구"를 올리기 위한 �
 | 홈 화면 이름 | 4S 챌린지 |
 | 패키지 ID / 번들 ID | `com.ohsang.fourschallenge` (Android·iOS 공통, 출시 후 변경 불가) |
 | 카테고리 | 게임 › 퍼즐 |
-| 가격 | 무료, 광고·인앱 결제 없음 |
+| 가격 | 무료, 인앱 결제 없음. **앱에 하단 배너 광고(AdMob)** 있음 (웹은 광고 없음) |
 | 개인정보처리방침 | https://4s-challenge.github.io/privacy.html |
 | 예상 등급 | 전체이용가 (IARC), App Store 4+ |
 | 서버 | Cloudflare Worker `four-s-challenge-api` (빌드 때 `config/prod.json`으로 주소 주입) |
@@ -61,7 +61,7 @@ Google Play와 App Store에 "4S 챌린지 - 숫자야구"를 올리기 위한 �
 각자 상대가 맞힐 비밀 숫자를 정하고, 번갈아 던져 먼저 4S를 만드는 사람이 승리!
 차례마다 30초 제한이 있어요.
 
-로그인 없이 바로 시작할 수 있고, 광고와 결제가 없습니다.
+로그인 없이 바로 시작할 수 있고, 결제가 없습니다.
 ```
 
 **키워드** (App Store, 100자, 쉼표로 구분): `숫자야구,숫자게임,추리,퍼즐,두뇌,브레인,야구,스트라이크,볼,대결,친구,랭킹`
@@ -101,6 +101,24 @@ iOS 앱은 **iPhone 전용**입니다(`TARGETED_DEVICE_FAMILY = 1`). iPad 스크
 1. GitHub **Actions → Store screenshots → Run workflow**: 실제 앱 화면을 Android·iPhone 크기로 렌더링해 Artifacts(`store-screenshots`)에 올립니다. 장면은 `store_screenshots/store_screenshots_test.dart`에 있습니다. 로컬에서는 `bash tool/store_screenshots.sh` (Flutter 필요)
 2. 받은 이미지를 `store_screenshots/out/`에 넣고 `python3 tools/make_store_screenshots.py`로 문구를 얹습니다. 문구는 스크립트의 `SHOTS`에서 바꿉니다.
 
+## 3-1. 광고 (AdMob 하단 배너)
+
+앱(Android/iOS)의 **홈, 결과, 랭킹, 대결 로비, 대결 대기·결과 화면 맨 아래**에 배너 광고(320×50)가 나옵니다. 숫자 키패드가 아래에 있는 게임 화면(혼자 하기, 숫자 정하기, 대결 중)에는 실수 클릭을 막기 위해 넣지 않았습니다(AdMob 정책). 웹에는 광고가 없습니다.
+
+지금은 **Google 테스트 광고 ID**로 동작합니다. 스토어에 올린 뒤 AdMob에서 앱을 등록·승인받으면 아래 값을 실제 ID로 바꿉니다.
+
+| 어디 | 값 | 지금 (테스트) |
+| --- | --- | --- |
+| `config/prod.json` → `ADMOB_ANDROID_APP_ID` | Android 앱 ID (`~` 들어간 것) | `ca-app-pub-3940256099942544~3347511713` |
+| `config/prod.json` → `ADMOB_ANDROID_BANNER_ID` | Android 배너 광고 단위 ID (`/` 들어간 것) | `ca-app-pub-3940256099942544/6300978111` |
+| `config/prod.json` → `ADMOB_IOS_BANNER_ID` | iOS 배너 광고 단위 ID | `ca-app-pub-3940256099942544/2934735716` |
+| `ios/Runner/Info.plist` → `GADApplicationIdentifier` | iOS 앱 ID | `ca-app-pub-3940256099942544~1458002511` |
+
+- Android 앱 ID는 빌드할 때 `config/prod.json`에서 `AndroidManifest.xml`로 들어갑니다(`android/app/build.gradle.kts`).
+- 바꾼 뒤 새 빌드를 올려야 실제 광고가 나옵니다. **실제 광고 ID로 바꾼 앱을 개발 중에 직접 눌러 보면 안 됩니다**(무효 클릭으로 계정이 제한될 수 있음). 내 기기에서 확인할 때는 AdMob **설정 › 테스트 기기**에 기기를 등록합니다.
+- 실제 ID로 바꾼 뒤 `https://4s-challenge.github.io/app-ads.txt`에 AdMob이 안내하는 한 줄을 올리면 광고 수익이 더 안정적입니다(`web/app-ads.txt` 파일을 만들면 웹 배포 때 함께 올라감). Play·App Store 등록 정보의 웹사이트 주소가 `https://4s-challenge.github.io`여야 합니다.
+- 유럽(EEA·영국) 이용자에게는 AdMob 동의 팝업(UMP)이 필요합니다. 처음에는 **한국(또는 유럽 제외 국가)에만 출시**하는 것을 권장합니다.
+
 ## 4. 등급 (IARC / App Store 연령 등급)
 
 Play Console **정책 › 앱 콘텐츠 › 콘텐츠 등급**에서 IARC 설문을 작성합니다. 카테고리는 **게임**.
@@ -137,13 +155,18 @@ App Store Connect의 연령 등급 설문도 같은 기준으로 모두 "없음"
 | └ 수집 / 공유 | 수집함, 제3자 공유 안 함 (Cloudflare는 서비스 제공자라 "공유"에 해당 안 됨) |
 | └ 필수 여부 | 선택 (랭킹 등록·대결을 안 하면 수집 안 함) |
 | └ 목적 | 앱 기능 |
+| 수집 데이터 (광고) | **기기 또는 기타 ID**: 광고 ID — AdMob SDK가 수집 |
+| └ 수집 / 공유 | 수집함, **공유함**(Google, 광고 목적) |
+| └ 필수 여부 | 필수 (앱에 광고가 나오면 항상 처리됨) |
+| └ 목적 | 광고 또는 마케팅, 분석, 사기 방지·보안 |
+| 수집 데이터 (광고 SDK) | **앱 활동 › 앱 상호작용**(광고 노출·클릭), **앱 정보 및 성능 › 비정상 종료 로그·진단** — AdMob SDK 기준. 최신 항목은 [AdMob 데이터 공개 안내](https://developers.google.com/admob/android/privacy/play-data-disclosure)를 확인 |
 | 데이터 삭제 요청 | 가능. 처리방침의 문의처(GitHub Issues) |
-| 광고 ID, 위치, 연락처, 기기 ID | 수집 안 함 |
+| 위치, 연락처 | 수집 안 함 |
 
 **App Store Connect › 앱 개인정보 보호**
 
-- 데이터 유형: **사용자 콘텐츠 › 기타 사용자 콘텐츠** (이니셜)
-- 사용자와 연결됨: 아니요 / 추적: 아니요 / 목적: 앱 기능
+- 데이터 유형: **사용자 콘텐츠 › 기타 사용자 콘텐츠** (이니셜) — 사용자와 연결됨: 아니요 / 추적: 아니요 / 목적: 앱 기능
+- 광고(AdMob): **식별자 › 기기 ID**, **사용 데이터 › 광고 데이터·제품 상호작용**, **진단** — 목적: 서드파티 광고, 분석. 맞춤형 광고를 쓰면 "추적: 예"와 앱의 추적 허용 요청(ATT) 팝업이 필요합니다. 지금 앱은 ATT 팝업 없이 동작하므로 iOS에서는 맞춤형이 아닌 광고가 나갑니다. [AdMob iOS 개인정보 안내](https://developers.google.com/admob/ios/privacy/data-disclosure)
 
 **수출 규정(iOS)**: HTTPS만 쓰므로 `ios/Runner/Info.plist`에 `ITSAppUsesNonExemptEncryption = false`를 넣어 두었습니다. 업로드할 때마다 묻지 않습니다.
 
@@ -154,7 +177,7 @@ App Store Connect의 연령 등급 설문도 같은 기준으로 모두 "없음"
 3. Play Console에서 앱 만들기 (이름, 기본 언어 한국어, 게임, 무료).
 4. **Play 앱 서명** 사용 (기본값). 첫 AAB를 올리면 Google이 앱 서명 키를 관리한다.
 5. **설정 › 앱 서명**에서 앱 서명 키 SHA-256과 업로드 키 SHA-256을 복사해, GitHub 저장소 변수 `ANDROID_CERT_SHA256`에 쉼표로 이어 넣는다 → main 배포 후 초대 링크가 앱으로 열림.
-6. 앱 콘텐츠(처리방침, 광고 없음, 등급, 타깃층, 데이터 보안, 정부 앱 아님 등)를 모두 작성한다.
+6. 앱 콘텐츠(처리방침, **광고: 예**, **광고 ID: 예(광고 목적)**, 등급, 타깃층, 데이터 보안, 정부 앱 아님 등)를 모두 작성한다.
 7. **비공개 테스트** 트랙에 올리고 테스터 12명 이상이 14일 동안 참여 → 프로덕션 신청 (개인 계정 조건).
 8. 프로덕션 출시.
 

@@ -211,6 +211,11 @@ class _VersusRoomScreenState extends State<VersusRoomScreen> {
         autofocus: true,
         onKeyEvent: _onKey,
         child: PhoneFrame(
+          // 대기·결과 화면에만 광고. 숫자를 정하거나 던지는 화면은 키패드가 아래에 있어 넣지 않는다.
+          showAd: session != null &&
+              (session.fatalError != null ||
+                  session.snapshot?.phase == VersusPhase.waiting ||
+                  session.snapshot?.phase == VersusPhase.finished),
           child: session == null
               ? const _CenterMessage(text: '대결 서버를 준비 중이에요')
               : ListenableBuilder(

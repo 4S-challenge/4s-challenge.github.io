@@ -97,6 +97,7 @@ flutter test
 - 패키지 ID: `com.ohsang.fourschallenge` (Android·iOS 공통, 스토어에 올린 뒤에는 바꿀 수 없음)
 - 홈 화면 이름: `4S 챌린지`
 - 스토어 출시 준비(등록 정보, 등급, 개인정보, 출시 순서): [docs/STORE.md](docs/STORE.md)
+- 광고: 홈·결과·랭킹·대결 대기/결과 화면 맨 아래 AdMob 배너 (`lib/ads/`). 지금은 테스트 광고 ID, 실제 ID로 바꾸는 법은 [docs/STORE.md](docs/STORE.md#3-1-광고-admob-하단-배너)
 
 앱에는 서버 주소가 빌드할 때 들어갑니다. 주소는 `config/prod.json`에 있고, 앱을 빌드·실행할 때는 항상 이 파일을 넘깁니다.
 

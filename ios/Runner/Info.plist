@@ -62,6 +62,18 @@
 	<!-- HTTPS(표준 암호화)만 쓰므로 App Store 수출 규정 질문이 매번 나오지 않게 한다. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- AdMob 앱 ID. 지금은 Google 테스트 앱 ID. 스토어 출시 후 AdMob에 앱을 등록하면
+	     실제 iOS 앱 ID(ca-app-pub-XXXX~YYYY)로 바꾼다 (docs/STORE.md 참고). -->
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<!-- 광고 성과 측정용 (Google 광고 네트워크) -->
+	<key>SKAdNetworkItems</key>
+	<array>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>cstr6suwn9.skadnetwork</string>
+		</dict>
+	</array>
 	<!-- 링크 처리는 app_links 패키지가 한다. Flutter 기본 딥링크 처리는 끈다. -->
 	<key>FlutterDeepLinkingEnabled</key>
 	<false/>
