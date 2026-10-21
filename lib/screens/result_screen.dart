@@ -65,6 +65,7 @@ class ResultScreen extends StatelessWidget {
     final gameId = summary.gameId;
 
     return PhoneFrame(
+      showAd: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

@@ -15,6 +15,18 @@ val keystoreProperties = Properties().apply {
     if (file.exists()) FileInputStream(file).use { load(it) }
 }
 
+// flutter build ... --dart-define-from-file=config/prod.json 으로 넘긴 값들
+val dartDefines: Map<String, String> = (project.findProperty("dart-defines") as String?)
+    ?.split(",")
+    ?.filter { it.isNotBlank() }
+    ?.map { String(Base64.getDecoder().decode(it)) }
+    ?.associate { it.substringBefore("=") to it.substringAfter("=", "") }
+    .orEmpty()
+
+// AdMob 앱 ID. config/prod.json의 ADMOB_ANDROID_APP_ID, 없으면 Google 테스트 앱 ID.
+val admobAndroidAppId = dartDefines["ADMOB_ANDROID_APP_ID"]?.takeIf { it.isNotBlank() }
+    ?: "ca-app-pub-3940256099942544~3347511713"
+
 android {
     namespace = "com.ohsang.fourschallenge"
     compileSdk = flutter.compileSdkVersion
@@ -38,6 +50,7 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["admobAppId"] = admobAndroidAppId
     }
 
     signingConfigs {
@@ -77,12 +90,7 @@ flutter {
 gradle.taskGraph.whenReady {
     val releaseBuild = allTasks.any { it.project == project && it.name.contains("Release") }
     if (!releaseBuild) return@whenReady
-    val defines = (project.findProperty("dart-defines") as String?)
-        ?.split(",")
-        ?.filter { it.isNotBlank() }
-        ?.map { String(Base64.getDecoder().decode(it)) }
-        .orEmpty()
-    val url = defines.firstOrNull { it.startsWith("API_BASE_URL=") }?.substringAfter("=")
+    val url = dartDefines["API_BASE_URL"]
     if (url.isNullOrBlank()) {
         throw GradleException(
             "API_BASE_URL이 없습니다. --dart-define-from-file=config/prod.json 을 붙여 빌드하세요."

@@ -38,6 +38,11 @@
             <!-- 링크 처리는 app_links 패키지가 한다. Flutter 기본 딥링크 처리는 끈다. -->
             <meta-data android:name="flutter_deeplinking_enabled" android:value="false"/>
         </activity>
+        <!-- AdMob 앱 ID. 값은 android/app/build.gradle.kts가 config/prod.json의
+             ADMOB_ANDROID_APP_ID로 채운다 (없으면 Google 테스트 앱 ID). -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="${admobAppId}"/>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

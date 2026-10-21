@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 
+import '../ads/banner_ad.dart';
 import '../game/game_logic.dart';
 import '../theme/app_theme.dart';
 
 /// 화면 폭이 넓은 웹에서도 휴대폰 화면처럼 가운데에 모아준다.
 class PhoneFrame extends StatelessWidget {
-  const PhoneFrame({super.key, required this.child});
+  const PhoneFrame({super.key, required this.child, this.showAd = false});
 
   final Widget child;
+
+  /// 화면 맨 아래에 배너 광고를 둘지. 숫자 키패드가 아래에 있는 게임 화면에서는
+  /// 실수로 광고를 누르기 쉬워서(광고 정책 위반) 켜지 않는다.
+  final bool showAd;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      bottomNavigationBar: showAd ? const BottomBannerAd() : null,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(

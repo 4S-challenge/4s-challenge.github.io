@@ -41,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return PhoneFrame(
+      showAd: true,
       child: LayoutBuilder(
         builder: (context, constraints) => SingleChildScrollView(
           // 아래 여백은 개인정보처리방침 버튼의 터치 영역(48)이 이미 있어 작게 둔다.

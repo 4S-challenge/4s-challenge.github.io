@@ -81,6 +81,7 @@ class _VersusLobbyScreenState extends State<VersusLobbyScreen> {
   Widget build(BuildContext context) {
     final api = ApiScope.of(context);
     return PhoneFrame(
+      showAd: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

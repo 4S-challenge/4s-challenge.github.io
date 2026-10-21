@@ -1,3 +1,6 @@
 {
-  "API_BASE_URL": "https://four-s-challenge-api.shark-keeper.workers.dev"
+  "API_BASE_URL": "https://four-s-challenge-api.shark-keeper.workers.dev",
+  "ADMOB_ANDROID_APP_ID": "ca-app-pub-3940256099942544~3347511713",
+  "ADMOB_ANDROID_BANNER_ID": "ca-app-pub-3940256099942544/6300978111",
+  "ADMOB_IOS_BANNER_ID": "ca-app-pub-3940256099942544/2934735716"
 }
