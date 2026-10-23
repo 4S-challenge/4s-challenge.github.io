@@ -20,7 +20,9 @@ bool get _adsSupported {
   return Platform.isAndroid || Platform.isIOS;
 }
 
+/// 디버그 빌드(flutter run)는 항상 테스트 광고를 쓴다. 개발 중 실제 광고를 눌러 계정이 제한되는 것을 막는다.
 String get _bannerUnitId {
+  if (kDebugMode) return Platform.isIOS ? _testBannerIos : _testBannerAndroid;
   if (Platform.isIOS) return _bannerIos.isNotEmpty ? _bannerIos : _testBannerIos;
   return _bannerAndroid.isNotEmpty ? _bannerAndroid : _testBannerAndroid;
 }
