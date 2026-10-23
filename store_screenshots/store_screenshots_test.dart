@@ -186,9 +186,25 @@ void main() {
             opponent: versusOpponent(
               name: 'LEE',
               ready: true,
-              guesses: [g('0123', 0, 2), g('4567', 0, 1), g('2890', 0, 3)],
+              guesses: [g('0123', 0, 2), g('4567', 0, 1)],
             ),
           ));
+        await settle(tester);
+        // 상대가 방금 던진 숫자가 전광판에 뜬 순간
+        socket.serverSend(versusState(
+          phase: 'playing',
+          turn: 0,
+          serverNow: now,
+          turnDeadline: now + 21500,
+          myName: 'KIM',
+          mySecret: '5209',
+          myGuesses: [g('1234', 0, 2), g('5670', 0, 1), g('3189', 1, 2)],
+          opponent: versusOpponent(
+            name: 'LEE',
+            ready: true,
+            guesses: [g('0123', 0, 2), g('4567', 0, 1), g('2890', 0, 3)],
+          ),
+        ));
         await settle(tester);
         for (final d in ['3', '8']) {
           await tester.tap(find.byKey(Key('vkey-$d')));
