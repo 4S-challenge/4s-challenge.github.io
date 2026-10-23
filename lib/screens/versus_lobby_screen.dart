@@ -297,13 +297,23 @@ class _WatchDialog extends StatelessWidget {
                 child: Row(
                   children: [
                     const Text('대결 중', style: TextStyle(fontSize: 13, color: AppColors.muted)),
-                    const Spacer(),
-                    Text(names[0], style: AppFonts.mono(const TextStyle(fontSize: 17, letterSpacing: 2))),
-                    const SizedBox(width: 6),
-                    Text('VS', style: AppFonts.mono(const TextStyle(fontSize: 13, color: AppColors.strike))),
-                    const SizedBox(width: 6),
-                    Text(names[1], style: AppFonts.mono(const TextStyle(fontSize: 17, letterSpacing: 2))),
-                    const Spacer(),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(names[0], style: AppFonts.mono(const TextStyle(fontSize: 17, letterSpacing: 2))),
+                            const SizedBox(width: 6),
+                            Text('VS', style: AppFonts.mono(const TextStyle(fontSize: 13, color: AppColors.strike))),
+                            const SizedBox(width: 6),
+                            Text(names[1], style: AppFonts.mono(const TextStyle(fontSize: 17, letterSpacing: 2))),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Text(
                       '관전 ${peek.spectators}명',
                       style: const TextStyle(fontSize: 13, color: AppColors.muted),
