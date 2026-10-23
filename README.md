@@ -94,7 +94,7 @@ flutter test
 
 ## 앱 (Android/iOS)
 
-- 패키지 ID: `com.ohsang.fourschallenge` (Android·iOS 공통, 스토어에 올린 뒤에는 바꿀 수 없음)
+- 패키지 ID: `com.ohsang.play.fourschallenge` (Android·iOS 공통, 스토어에 올린 뒤에는 바꿀 수 없음)
 - 홈 화면 이름: `4S 챌린지`
 - 스토어 출시 준비(등록 정보, 등급, 개인정보, 출시 순서): [docs/STORE.md](docs/STORE.md)
 - 광고: 홈·결과·랭킹·대결 대기/결과 화면 맨 아래 AdMob 배너 (`lib/ads/`). 지금은 테스트 광고 ID, 실제 ID로 바꾸는 법은 [docs/STORE.md](docs/STORE.md#3-1-광고-admob-하단-배너)
@@ -173,7 +173,7 @@ Android·iOS가 "이 도메인은 이 앱 것"이라고 확인하려면 웹에 �
 
 변수를 넣은 뒤 `main`에 배포하고 확인합니다.
 
-- Android: `https://4s-challenge.github.io/.well-known/assetlinks.json` 이 열리는지, 기기에서 `adb shell pm get-app-links com.ohsang.fourschallenge` 결과가 `verified`인지
+- Android: `https://4s-challenge.github.io/.well-known/assetlinks.json` 이 열리는지, 기기에서 `adb shell pm get-app-links com.ohsang.play.fourschallenge` 결과가 `verified`인지
 - iOS: `https://app-site-association.cdn-apple.com/a/v1/4s-challenge.github.io` 에서 Apple이 파일을 가져갔는지 (반영까지 최대 하루)
 
 Android는 경로 `/`만 앱으로 받으므로 `/privacy.html` 같은 다른 페이지는 브라우저로 열립니다. iOS는 `?room=`이 붙은 링크만 앱으로 엽니다.

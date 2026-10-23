@@ -184,7 +184,7 @@ jobs:
       # upload-pages-artifact v4부터는 숨김 폴더(.well-known)가 기본으로 빠지니 올릴 때 include-hidden-files를 켤 것.
       - name: App link verification files
         env:
-          APP_ID: com.ohsang.fourschallenge
+          APP_ID: com.ohsang.play.fourschallenge
           ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
           APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
         run: |

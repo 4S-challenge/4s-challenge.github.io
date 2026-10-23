@@ -8,7 +8,7 @@ Google Play와 App Store에 "4S 챌린지 - 숫자야구"를 올리기 위한 �
 | --- | --- |
 | 앱 이름 | 4S 챌린지 - 숫자야구 (13자, Play·App Store 모두 30자 이내) |
 | 홈 화면 이름 | 4S 챌린지 |
-| 패키지 ID / 번들 ID | `com.ohsang.fourschallenge` (Android·iOS 공통, 출시 후 변경 불가) |
+| 패키지 ID / 번들 ID | `com.ohsang.play.fourschallenge` (Android·iOS 공통, 출시 후 변경 불가) |
 | 카테고리 | 게임 › 퍼즐 |
 | 가격 | 무료, 인앱 결제 없음. **앱에 하단 배너 광고(AdMob)** 있음 (웹은 광고 없음) |
 | 개인정보처리방침 | https://4s-challenge.github.io/privacy.html |
@@ -183,7 +183,7 @@ App Store Connect의 연령 등급 설문도 같은 기준으로 모두 "없음"
 
 ## 7. iOS 출시 순서 (Mac 필요)
 
-1. Apple Developer에서 App ID `com.ohsang.fourschallenge` 등록, **Associated Domains** 켜기.
+1. Apple Developer에서 App ID `com.ohsang.play.fourschallenge` 등록, **Associated Domains** 켜기.
 2. Team ID를 GitHub 저장소 변수 `APPLE_TEAM_ID`에 넣는다 → main 배포 후 Universal Links 검증 파일이 올라감.
 3. Mac에서 저장소를 받아 Xcode로 `ios/Runner.xcworkspace`를 열고 Signing & Capabilities에서 팀 선택 (자동 서명).
 4. 빌드·업로드:

@@ -1,4 +1,4 @@
-package com.ohsang.fourschallenge
+package com.ohsang.play.fourschallenge
 
 import io.flutter.embedding.android.FlutterActivity
 
