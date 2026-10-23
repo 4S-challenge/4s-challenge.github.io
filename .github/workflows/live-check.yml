@@ -1,0 +1,26 @@
+name: Live check
+
+# 배포된 서버에 실제로 접속해 친구와 대결·관전 흐름을 확인한다 (수동 실행).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  versus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Spectator flow
+        env:
+          BASE: ${{ vars.API_BASE_URL || 'https://four-s-challenge-api.shark-keeper.workers.dev' }}
+        run: |
+          node tools/e2e/spectator-e2e.mjs | tee out.txt
+          status=${PIPESTATUS[0]}
+          grep FAIL out.txt | while read -r line; do echo "::error::$line"; done
+          echo "::notice::$(tail -1 out.txt)"
+          exit $status
