@@ -9,6 +9,7 @@ import {
   guess,
   join,
   leave,
+  peek,
   requestRematch,
   setSecret,
   viewFor,
@@ -76,6 +77,12 @@ export class VersusRoom extends DurableObject<Env> {
       return new Response('created', { status: 201 });
     }
 
+    if (url.pathname === '/peek') {
+      const state = await this.load();
+      if (!state) return Response.json({ error: '없는 방이에요. 코드를 확인해 주세요' }, { status: 404 });
+      return Response.json(peek(state));
+    }
+
     if (url.pathname === '/ws') {
       if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') {
         return new Response('WebSocket 연결이 필요해요', { status: 426 });
@@ -100,6 +107,7 @@ export class VersusRoom extends DurableObject<Env> {
             name: url.searchParams.get('name') ?? '',
             newId: crypto.randomUUID(),
             firstSeat: crypto.getRandomValues(new Uint8Array(1))[0] % 2,
+            watch: url.searchParams.get('watch') === '1',
           },
           Date.now(),
         );
@@ -203,7 +211,7 @@ export class VersusRoom extends DurableObject<Env> {
     if (!state) return;
     disconnect(state, att.playerId);
     // 대기 중에 방장이 나가면 방을 비운다.
-    if (state.phase === 'waiting') {
+    if (state.phase === 'waiting' && state.players.some((p) => p.id === att.playerId)) {
       state.players = state.players.filter((p) => p.id !== att.playerId);
     }
     await this.save(state);

@@ -136,6 +136,11 @@ class VersusSession extends ChangeNotifier {
     final first = _lastTimeoutAt == null && _snapshot == null;
     _lastTimeoutAt = at;
     if (first) return; // 막 들어왔을 때 예전 일은 알리지 않는다.
+    if (snap.spectating) {
+      final name = snap.timeoutSeat == snap.you ? snap.me.name : snap.opponent?.name;
+      _notices.add('${name ?? '선수'} 님이 시간을 넘겨 차례가 넘어갔어요');
+      return;
+    }
     _notices.add(
       snap.timeoutSeat == snap.you ? '시간 초과! 상대 차례로 넘어갔어요' : '상대가 시간을 넘겨 내 차례예요',
     );

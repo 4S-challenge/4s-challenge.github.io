@@ -25,6 +25,9 @@ class FakeServer {
   /// 방 만들기 요청에 돌려줄 방 코드.
   String roomCode = 'K7Q2';
 
+  /// 방 요약 요청(GET /api/versus/rooms/CODE)에 돌려줄 값. null이면 없는 방.
+  Map<String, Object>? roomPeek = {'full': false, 'players': ['AAA'], 'spectators': 0};
+
   /// 앱이 연 대결방 연결들.
   final List<FakeVersusSocket> sockets = [];
 
@@ -52,6 +55,11 @@ class FakeServer {
     final body = req.body.isEmpty
         ? <String, dynamic>{}
         : jsonDecode(req.body) as Map<String, dynamic>;
+
+    if (RegExp(r'^GET /api/versus/rooms/[A-Z0-9]+$').hasMatch(key)) {
+      final peek = roomPeek;
+      return peek == null ? _json({'error': '없는 방이에요. 코드를 확인해 주세요'}, 404) : _json(peek);
+    }
 
     switch (key) {
       case 'POST /api/solo/start':
@@ -168,9 +176,13 @@ Map<String, Object?> versusState({
   List<Map<String, Object?>> myGuesses = const [],
   bool myRematch = false,
   Map<String, Object?>? opponent,
+  bool spectator = false,
+  List<Map<String, Object?>> spectators = const [],
 }) =>
     {
       'type': 'state',
+      'role': spectator ? 'spectator' : 'player',
+      'spectators': spectators,
       'code': 'K7Q2',
       'phase': phase,
       'round': round,
@@ -212,3 +224,6 @@ Map<String, Object?> versusOpponent({
 
 Map<String, Object?> g(String guess, int strikes, int balls) =>
     {'guess': guess, 'strikes': strikes, 'balls': balls};
+
+Map<String, Object?> watcher(String name, {int since = 1792400000000, bool me = false}) =>
+    {'name': name, 'since': since, if (me) 'me': true};

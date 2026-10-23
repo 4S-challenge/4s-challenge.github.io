@@ -172,11 +172,18 @@ class FourSApi {
     return data['code'] as String;
   }
 
-  /// 대결방 WebSocket 주소.
-  Uri roomSocketUri(String code, {required String name, String? playerId}) {
+  /// 들어가기 전에 방 요약을 본다 (대결 중인지, 누가 하는지, 관전자 수).
+  Future<RoomPeek> peekRoom(String code) async {
+    final data = await _send('GET', '/api/versus/rooms/$code');
+    return RoomPeek.fromJson(data);
+  }
+
+  /// 대결방 WebSocket 주소. [watch]면 꽉 찬 방에 관전자로 들어간다.
+  Uri roomSocketUri(String code, {required String name, String? playerId, bool watch = false}) {
     final uri = _uri('/api/versus/rooms/$code/ws', {
       'name': name,
       if (playerId != null) 'playerId': playerId,
+      if (watch) 'watch': '1',
     });
     return uri.replace(scheme: uri.scheme == 'https' ? 'wss' : 'ws');
   }
@@ -205,4 +212,27 @@ class ApiScope extends InheritedWidget {
 
   @override
   bool updateShouldNotify(ApiScope oldWidget) => oldWidget.api != api;
+}
+
+/// 들어가기 전에 보는 대결방 요약.
+class RoomPeek {
+  const RoomPeek({required this.full, required this.players, required this.spectators});
+
+  factory RoomPeek.fromJson(Map<String, dynamic> json) => RoomPeek(
+        full: json['full'] as bool? ?? false,
+        players: [
+          if (json['players'] is List)
+            for (final name in (json['players'] as List).whereType<String>()) name,
+        ],
+        spectators: json['spectators'] as int? ?? 0,
+      );
+
+  /// 두 자리가 다 차서 관전으로만 들어갈 수 있는지.
+  final bool full;
+
+  /// 대결 중인 두 사람 이니셜.
+  final List<String> players;
+
+  /// 지금 관전 중인 사람 수.
+  final int spectators;
 }

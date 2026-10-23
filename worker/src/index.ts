@@ -217,6 +217,14 @@ async function createVersusRoom(env: Env): Promise<Response> {
   throw new HttpError(503, '방을 만들지 못했어요. 잠시 후 다시 시도해 주세요');
 }
 
+/** 들어가기 전에 방 요약(대결 중인지, 누가 하는지, 관전자 수)을 본다. */
+async function peekVersusRoom(env: Env, code: string): Promise<Response> {
+  if (!isRoomCode(code)) throw new HttpError(400, '방 코드가 올바르지 않아요');
+  const stub = env.VERSUS.get(env.VERSUS.idFromName(code));
+  const res = await stub.fetch('https://room/peek');
+  return json(await res.json(), res.status);
+}
+
 /** 대결방 WebSocket 연결을 해당 방(Durable Object)으로 넘긴다. */
 function connectVersusRoom(request: Request, env: Env, code: string, url: URL): Promise<Response> | Response {
   const origin = request.headers.get('Origin');
@@ -247,6 +255,8 @@ async function route(request: Request, env: Env): Promise<Response> {
     default: {
       const ws = /^GET \/api\/versus\/rooms\/([A-Za-z0-9]+)\/ws$/.exec(key);
       if (ws) return connectVersusRoom(request, env, ws[1].toUpperCase(), url);
+      const room = /^GET \/api\/versus\/rooms\/([A-Za-z0-9]+)$/.exec(key);
+      if (room) return peekVersusRoom(env, room[1].toUpperCase());
       throw new HttpError(404, '없는 주소예요');
     }
   }

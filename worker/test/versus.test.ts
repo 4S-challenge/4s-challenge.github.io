@@ -9,6 +9,8 @@ import {
   isRoomCode,
   join,
   leave,
+  MAX_SPECTATORS,
+  peek,
   randomRoomCode,
   requestRematch,
   setSecret,
@@ -182,5 +184,86 @@ describe('화면 상태', () => {
     guess(s, 'b', '0912', T0 + 3);
     guess(s, 'a', '5678', T0 + 4);
     expect(viewFor(s, 'b', T0 + 5).opponent?.secret).toBe('1234');
+  });
+});
+
+describe('관전', () => {
+  it('꽉 찬 방은 관전으로 물어볼 수 있게 요약을 보여준다', () => {
+    const s = createRoom('K7Q2', T0);
+    join(s, { name: 'AAA', newId: 'a', firstSeat: 0 }, T0);
+    expect(peek(s)).toMatchObject({ full: false, players: ['AAA'], spectators: 0 });
+    join(s, { name: 'BBB', newId: 'b', firstSeat: 0 }, T0);
+    expect(peek(s)).toMatchObject({ full: true, phase: 'setting', players: ['AAA', 'BBB'] });
+  });
+
+  it('watch로 들어오면 관전자가 되고, 없으면 거부', () => {
+    const { s } = playing();
+    expect(() => join(s, { name: 'CCC', newId: 'c', firstSeat: 0 }, T0)).toThrow('이미 대결이 시작된 방이에요');
+    const id = join(s, { name: 'CCC', newId: 'c', firstSeat: 0, watch: true }, T0 + 5);
+    expect(id).toBe('c');
+    expect(s.players).toHaveLength(2);
+    expect(peek(s).spectators).toBe(1);
+  });
+
+  it('관전자에게는 두 사람 기록이 보이고 비밀 숫자는 끝날 때까지 숨긴다', () => {
+    const { s } = playing();
+    join(s, { name: 'CCC', newId: 'c', firstSeat: 0, watch: true }, T0);
+    guess(s, 'a', '5687', T0);
+    guess(s, 'b', '1290', T0);
+    const v = viewFor(s, 'c', T0);
+    expect(v.role).toBe('spectator');
+    expect(v.me?.name).toBe('AAA');
+    expect(v.me?.secret).toBeNull();
+    expect(v.opponent?.secret).toBeNull();
+    expect(v.me?.guesses.map((g) => g.guess)).toEqual(['5687']);
+    expect(v.opponent?.guesses.map((g) => g.guess)).toEqual(['1290']);
+    expect(v.spectators).toEqual([{ name: 'CCC', since: T0, me: true }]);
+    expect(viewFor(s, 'a', T0).spectators).toEqual([{ name: 'CCC', since: T0 }]);
+
+    guess(s, 'a', '5678', T0);
+    const done = viewFor(s, 'c', T0);
+    expect(done.me?.secret).toBe('1234');
+    expect(done.opponent?.secret).toBe('5678');
+    expect(done.winner).toBe(0);
+  });
+
+  it('관전자는 던지거나 숫자를 정할 수 없다', () => {
+    const { s } = twoPlayers();
+    join(s, { name: 'CCC', newId: 'c', firstSeat: 0, watch: true }, T0);
+    expect(() => setSecret(s, 'c', '1234', T0)).toThrow(RoomError);
+    setSecret(s, 'a', '1234', T0);
+    setSecret(s, 'b', '5678', T0);
+    expect(() => guess(s, 'c', '5678', T0)).toThrow(RoomError);
+    expect(() => requestRematch(s, 'c', T0)).toThrow(RoomError);
+  });
+
+  it('관전자가 나가도 대결은 그대로, 끊겼다 다시 들어오면 이어서 본다', () => {
+    const { s } = playing();
+    join(s, { name: 'CCC', newId: 'c', firstSeat: 0, watch: true }, T0);
+    disconnect(s, 'c');
+    expect(peek(s).spectators).toBe(0);
+    expect(join(s, { playerId: 'c', name: 'CCC', newId: 'x', firstSeat: 0, watch: true }, T0)).toBe('c');
+    expect(peek(s).spectators).toBe(1);
+    leave(s, 'c', T0);
+    expect(s.phase).toBe('playing');
+    expect(peek(s).spectators).toBe(0);
+  });
+
+  it('관전 인원 제한', () => {
+    const { s } = playing();
+    for (let i = 0; i < MAX_SPECTATORS; i++) {
+      join(s, { name: 'CCC', newId: `c${i}`, firstSeat: 0, watch: true }, T0);
+    }
+    expect(() => join(s, { name: 'DDD', newId: 'd', firstSeat: 0, watch: true }, T0)).toThrow('가득');
+  });
+
+  it('한 판 더 해도 관전자는 남는다', () => {
+    const { s } = playing();
+    join(s, { name: 'CCC', newId: 'c', firstSeat: 0, watch: true }, T0);
+    guess(s, 'a', '5678', T0);
+    requestRematch(s, 'a', T0);
+    requestRematch(s, 'b', T0);
+    expect(s.phase).toBe('setting');
+    expect(viewFor(s, 'c', T0).spectators).toHaveLength(1);
   });
 });
