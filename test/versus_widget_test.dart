@@ -30,7 +30,7 @@ void main() {
   }
 
   /// 홈 위에 대결방 화면을 띄우고, 앱이 연 가짜 연결을 돌려준다.
-  Future<FakeVersusSocket> openRoom(WidgetTester tester, FakeServer server) async {
+  Future<FakeVersusSocket> openRoom(WidgetTester tester, FakeServer server, {bool watch = false}) async {
     usePhoneSize(tester);
     final nav = GlobalKey<NavigatorState>();
     await tester.pumpWidget(ApiScope(
@@ -42,7 +42,7 @@ void main() {
       ),
     ));
     nav.currentState!.push(MaterialPageRoute<void>(
-      builder: (_) => const VersusRoomScreen(code: 'K7Q2', name: 'AAA'),
+      builder: (_) => VersusRoomScreen(code: 'K7Q2', name: watch ? 'YOO' : 'AAA', watch: watch),
     ));
     await settle(tester);
     final socket = server.sockets.last;
@@ -375,6 +375,157 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('versus-join')));
     await settle(tester);
+    expect(server.requests, contains('GET /api/versus/rooms/K7Q2'));
     expect(server.sockets.single.uri.path, '/api/versus/rooms/K7Q2/ws');
+    expect(server.sockets.single.uri.queryParameters.containsKey('watch'), isFalse);
+  });
+
+  group('관전', () {
+    Future<void> openLobby(WidgetTester tester, FakeServer server) async {
+      usePhoneSize(tester);
+      await tester.pumpWidget(FourSApp(api: server.api, initialRoomCode: 'K7Q2'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('versus-name')), 'YOO');
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('versus-join')));
+      await settle(tester);
+    }
+
+    testWidgets('대결 중인 방이면 관전으로 들어갈지 묻고, 아니요면 들어가지 않는다', (tester) async {
+      final server = FakeServer()
+        ..roomPeek = {'full': true, 'players': ['KIM', 'LEE'], 'spectators': 2};
+      await openLobby(tester, server);
+
+      expect(find.byKey(const Key('versus-watch-dialog')), findsOneWidget);
+      expect(find.text('이미 대결 중인 방이에요'), findsOneWidget);
+      expect(find.text('지금은 관전으로만 들어갈 수 있어요.\n관전으로 들어갈까요?'), findsOneWidget);
+      expect(find.text('KIM'), findsOneWidget);
+      expect(find.text('LEE'), findsOneWidget);
+      expect(find.text('관전 2명'), findsOneWidget);
+
+      await tester.tap(find.text('아니요'));
+      await settle(tester);
+      expect(server.sockets, isEmpty);
+      expect(find.byKey(const Key('versus-watch-dialog')), findsNothing);
+    });
+
+    testWidgets('관전하기를 누르면 관전자로 들어간다', (tester) async {
+      final server = FakeServer()
+        ..roomPeek = {'full': true, 'players': ['KIM', 'LEE'], 'spectators': 0};
+      await openLobby(tester, server);
+      await tester.tap(find.byKey(const Key('versus-watch-confirm')));
+      await settle(tester);
+      final socket = server.sockets.single;
+      expect(socket.uri.queryParameters['watch'], '1');
+      expect(socket.uri.queryParameters['name'], 'YOO');
+    });
+
+    testWidgets('없는 방이면 로비에서 바로 알려준다', (tester) async {
+      final server = FakeServer()..roomPeek = null;
+      await openLobby(tester, server);
+      expect(find.text('없는 방이에요. 코드를 확인해 주세요'), findsOneWidget);
+      expect(server.sockets, isEmpty);
+    });
+
+    testWidgets('관전 화면: 두 사람 기록과 함께 보는 사람, 키패드 없음, 바로 나가기', (tester) async {
+      final server = FakeServer();
+      final socket = await openRoom(tester, server, watch: true);
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final spectators = [watcher('PAK'), watcher('YOO', me: true)];
+      Map<String, Object?> state({List<Map<String, Object?>> leeGuesses = const []}) => versusState(
+            phase: 'playing',
+            spectator: true,
+            turn: 0,
+            serverNow: now,
+            turnDeadline: now + 30000,
+            myName: 'KIM',
+            myGuesses: [g('1234', 0, 2)],
+            opponent: versusOpponent(name: 'LEE', ready: true, guesses: leeGuesses),
+            spectators: spectators,
+          );
+      await send(tester, socket, state());
+
+      expect(find.text('관전 중 · K7Q2'), findsOneWidget);
+      expect(find.text('KIM 차례'), findsOneWidget);
+      expect(find.text('관전 중 · KIM 님이 숫자를 고르는 중'), findsOneWidget);
+      expect(find.text('KIM의 추리'), findsOneWidget);
+      expect(find.text('LEE의 추리'), findsOneWidget);
+      expect(find.text('1234'), findsOneWidget);
+      expect(find.text('YOO (나)'), findsOneWidget);
+      expect(find.text('PAK'), findsOneWidget);
+      expect(find.byKey(const Key('vkey-1')), findsNothing);
+      expect(find.byKey(const Key('versus-my-secret')), findsNothing);
+      expect(find.text('내 차례'), findsNothing);
+
+      // 누가 던지면 전광판에 이름과 숫자가 뜬다.
+      await send(tester, socket, state(leeGuesses: [g('2890', 0, 3)]));
+      final flash = find.byKey(const Key('versus-flash'));
+      expect(find.descendant(of: flash, matching: find.text('LEE')), findsOneWidget);
+      expect(find.descendant(of: flash, matching: find.text('3B')), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+
+      // 관전 그만하기는 확인 없이 바로 나간다.
+      await tester.tap(find.byKey(const Key('versus-watch-leave')));
+      await settle(tester);
+      expect(socket.sent.last, {'type': 'leave'});
+      expect(find.text('HOME'), findsOneWidget);
+    });
+
+    testWidgets('관전 결과: 승자와 두 사람의 숫자를 보여주고 한 판 더는 없다', (tester) async {
+      final server = FakeServer();
+      final socket = await openRoom(tester, server, watch: true);
+      await send(
+        tester,
+        socket,
+        versusState(
+          phase: 'finished',
+          spectator: true,
+          winner: 1,
+          endReason: 'solved',
+          myName: 'KIM',
+          mySecret: '1234',
+          myGuesses: [g('5687', 2, 2)],
+          opponent: versusOpponent(name: 'LEE', secret: '5678', guesses: [g('1234', 4, 0)]),
+          spectators: [watcher('YOO', me: true)],
+        ),
+      );
+      expect(find.text('LEE 승리!'), findsOneWidget);
+      expect(find.text('LEE 님이 KIM 님의 숫자를 먼저 맞혔어요'), findsOneWidget);
+      expect(find.text('KIM의 숫자'), findsOneWidget);
+      expect(find.text('LEE의 숫자'), findsOneWidget);
+      expect(find.text('5678'), findsOneWidget);
+      expect(find.byKey(const Key('versus-rematch')), findsNothing);
+      expect(find.byKey(const Key('versus-watch-leave')), findsOneWidget);
+    });
+
+    testWidgets('선수 화면: 눈 버튼에 관전자 수, 누르면 목록, 새 관전자는 알림', (tester) async {
+      final server = FakeServer();
+      final socket = await openRoom(tester, server);
+      final now = DateTime.now().millisecondsSinceEpoch;
+      Map<String, Object?> state(List<Map<String, Object?>> spectators) => versusState(
+            phase: 'playing',
+            turn: 1,
+            serverNow: now,
+            turnDeadline: now + 30000,
+            mySecret: '1234',
+            opponent: versusOpponent(ready: true),
+            spectators: spectators,
+          );
+      await send(tester, socket, state([]));
+      expect(find.byKey(const Key('versus-spectators')), findsNothing);
+
+      await send(tester, socket, state([watcher('PAK', since: now - 180000)]));
+      await tester.pump();
+      expect(find.text('PAK 님이 관전을 시작했어요'), findsOneWidget);
+      final eye = find.byKey(const Key('versus-spectators'));
+      expect(find.descendant(of: eye, matching: find.text('1')), findsOneWidget);
+
+      await tester.tap(eye);
+      await settle(tester);
+      final sheet = find.byKey(const Key('versus-spectator-sheet'));
+      expect(find.descendant(of: sheet, matching: find.text('PAK')), findsOneWidget);
+      expect(find.descendant(of: sheet, matching: find.text('3분 전부터')), findsOneWidget);
+      expect(find.descendant(of: sheet, matching: find.text('1명')), findsOneWidget);
+    });
   });
 }

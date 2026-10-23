@@ -10,6 +10,8 @@ export const TURN_MS = 30_000;
 export const ROOM_CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export const ROOM_CODE_LENGTH = 4;
 const MAX_GUESSES_PER_PLAYER = 200;
+/** 방 하나에 동시에 볼 수 있는 관전자 수. */
+export const MAX_SPECTATORS = 10;
 
 export type Phase = 'waiting' | 'setting' | 'playing' | 'finished';
 export type EndReason = 'solved' | 'forfeit';
@@ -31,6 +33,14 @@ export interface Player {
   rematch: boolean;
 }
 
+export interface Spectator {
+  id: string;
+  name: string;
+  /** 관전을 시작한 시각. */
+  since: number;
+  connected: boolean;
+}
+
 export interface RoomEvent {
   type: 'timeout';
   seat: number;
@@ -43,6 +53,8 @@ export interface RoomState {
   updatedAt: number;
   phase: Phase;
   players: Player[];
+  /** 대결이 시작된 뒤 들어온 사람들. 예전에 저장된 방에는 없을 수 있다. */
+  spectators?: Spectator[];
   round: number;
   firstSeat: number;
   turn: number;
@@ -73,6 +85,7 @@ export function createRoom(code: string, now: number): RoomState {
     updatedAt: now,
     phase: 'waiting',
     players: [],
+    spectators: [],
     round: 1,
     firstSeat: 0,
     turn: 0,
@@ -93,13 +106,44 @@ function other(seat: number): number {
   return seat === 0 ? 1 : 0;
 }
 
+function spectatorsOf(state: RoomState): Spectator[] {
+  state.spectators ??= [];
+  return state.spectators;
+}
+
+/** 관전 중인(접속해 있는) 사람들. */
+export function watching(state: RoomState): Spectator[] {
+  return spectatorsOf(state).filter((s) => s.connected);
+}
+
+export function isSpectator(state: RoomState, id: string): boolean {
+  return spectatorsOf(state).some((s) => s.id === id);
+}
+
+/** 방이 꽉 차서 관전으로만 들어갈 수 있는지. */
+export function isFull(state: RoomState): boolean {
+  return state.phase !== 'waiting' || state.players.length >= 2;
+}
+
+/** 방 코드로 들어가기 전에 보는 방 요약. */
+export function peek(state: RoomState) {
+  return {
+    code: state.code,
+    phase: state.phase,
+    full: isFull(state),
+    players: state.players.filter((p) => !p.left).map((p) => p.name),
+    spectators: watching(state).length,
+  };
+}
+
 /**
- * 입장. [playerId]가 이미 이 방 참가자면 재접속으로 처리한다.
+ * 입장. [playerId]가 이미 이 방 참가자(또는 관전자)면 재접속으로 처리한다.
  * 새 참가자면 [newId]로 등록한다. 돌려주는 값은 이 연결의 playerId.
+ * 방이 꽉 찼으면 [watch]일 때만 관전자로 들어온다.
  */
 export function join(
   state: RoomState,
-  args: { playerId?: string | null; name: string; newId: string; firstSeat: number },
+  args: { playerId?: string | null; name: string; newId: string; firstSeat: number; watch?: boolean },
   now: number,
 ): string {
   const existing = args.playerId ? state.players.find((p) => p.id === args.playerId) : undefined;
@@ -109,11 +153,24 @@ export function join(
     state.updatedAt = now;
     return existing.id;
   }
+  const spectators = spectatorsOf(state);
+  const watcher = args.playerId ? spectators.find((s) => s.id === args.playerId) : undefined;
+  if (watcher) {
+    watcher.connected = true;
+    return watcher.id;
+  }
 
   const nameError = validateInitials(args.name);
   if (nameError) throw new RoomError(nameError);
-  if (state.phase !== 'waiting' || state.players.length >= 2) {
-    throw new RoomError('이미 대결이 시작된 방이에요');
+  if (isFull(state)) {
+    if (!args.watch) throw new RoomError('이미 대결이 시작된 방이에요');
+    if (watching(state).length >= MAX_SPECTATORS) {
+      throw new RoomError(`관전 인원(${MAX_SPECTATORS}명)이 가득 찼어요`);
+    }
+    // 오래 끊긴 관전자 기록은 정리한다.
+    state.spectators = spectators.filter((s) => s.connected);
+    state.spectators.push({ id: args.newId, name: args.name, since: now, connected: true });
+    return args.newId;
   }
 
   state.players.push({
@@ -190,8 +247,12 @@ export function expireTurn(state: RoomState, now: number): boolean {
   return true;
 }
 
-/** 나가기. 대결 중(숫자 정하기 포함)에 나가면 기권패. */
+/** 나가기. 대결 중(숫자 정하기 포함)에 나가면 기권패. 관전자는 목록에서 빠진다. */
 export function leave(state: RoomState, playerId: string, now: number): void {
+  if (isSpectator(state, playerId)) {
+    state.spectators = spectatorsOf(state).filter((s) => s.id !== playerId);
+    return;
+  }
   const seat = seatOf(state, playerId);
   const player = state.players[seat];
   state.updatedAt = now;
@@ -214,6 +275,8 @@ export function leave(state: RoomState, playerId: string, now: number): void {
 export function disconnect(state: RoomState, playerId: string): void {
   const player = state.players.find((p) => p.id === playerId);
   if (player) player.connected = false;
+  const watcher = spectatorsOf(state).find((s) => s.id === playerId);
+  if (watcher) watcher.connected = false;
 }
 
 /** 한 판 더. 둘 다 누르면 새 판을 시작하고 선공을 바꾼다. */
@@ -242,13 +305,22 @@ export function requestRematch(state: RoomState, playerId: string, now: number):
   }
 }
 
-/** 한 참가자에게 보낼 화면 상태. 상대 비밀 숫자는 끝났을 때만 보여준다. */
+/** 한 참가자에게 보낼 화면 상태. 상대 비밀 숫자는 끝났을 때만 보여준다.
+ * 관전자에게는 첫 번째 자리를 me, 두 번째 자리를 opponent로 보내고, 두 비밀 숫자 모두 끝날 때까지 숨긴다. */
 export function viewFor(state: RoomState, playerId: string, now: number) {
-  const seat = state.players.findIndex((p) => p.id === playerId);
+  const spectating = isSpectator(state, playerId);
+  const seat = spectating ? 0 : state.players.findIndex((p) => p.id === playerId);
   const me = state.players[seat];
   const opp = seat >= 0 ? state.players[other(seat)] : undefined;
+  const finished = state.phase === 'finished';
   return {
     type: 'state' as const,
+    role: spectating ? ('spectator' as const) : ('player' as const),
+    spectators: watching(state).map((s) => ({
+      name: s.name,
+      since: s.since,
+      ...(s.id === playerId ? { me: true } : {}),
+    })),
     code: state.code,
     phase: state.phase,
     round: state.round,
@@ -263,9 +335,12 @@ export function viewFor(state: RoomState, playerId: string, now: number) {
     me: me
       ? {
           name: me.name,
-          secret: me.secret,
+          secret: spectating && !finished ? null : me.secret,
           guesses: me.guesses,
           rematch: me.rematch,
+          connected: me.connected,
+          left: me.left,
+          ready: me.secret !== null,
         }
       : null,
     opponent: opp
@@ -277,7 +352,7 @@ export function viewFor(state: RoomState, playerId: string, now: number) {
           rematch: opp.rematch,
           // 상대가 내 숫자를 맞히려고 던진 기록. 내 숫자이므로 보여줘도 된다.
           guesses: opp.guesses,
-          secret: state.phase === 'finished' ? opp.secret : null,
+          secret: finished ? opp.secret : null,
         }
       : null,
   };

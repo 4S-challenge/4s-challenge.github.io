@@ -31,6 +31,9 @@ class VersusMe {
     required this.secret,
     required this.guesses,
     required this.rematch,
+    this.connected = true,
+    this.left = false,
+    this.ready = false,
   });
 
   factory VersusMe.fromJson(Map<String, dynamic> json) => VersusMe(
@@ -38,7 +41,15 @@ class VersusMe {
         secret: json['secret'] as String?,
         guesses: _guessesFrom(json['guesses']),
         rematch: json['rematch'] as bool? ?? false,
+        connected: json['connected'] as bool? ?? true,
+        left: json['left'] as bool? ?? false,
+        ready: json['ready'] as bool? ?? json['secret'] != null,
       );
+
+  /// 관전 화면에서 첫 번째 선수의 상태를 보여줄 때 쓴다.
+  final bool connected;
+  final bool left;
+  final bool ready;
 
   final String name;
 
@@ -86,6 +97,28 @@ class VersusOpponent {
   final String? secret;
 }
 
+/// 관전자 한 명.
+class VersusSpectator {
+  const VersusSpectator({required this.name, required this.since, this.me = false});
+
+  factory VersusSpectator.fromJson(Map<String, dynamic> json) => VersusSpectator(
+        name: json['name'] as String? ?? '',
+        since: json['since'] as int? ?? 0,
+        me: json['me'] as bool? ?? false,
+      );
+
+  final String name;
+
+  /// 관전을 시작한 시각(서버 시계, 밀리초).
+  final int since;
+
+  /// 이 기기(나)인지.
+  final bool me;
+
+  /// 같은 사람인지 구분하는 값.
+  String get key => '$name@$since';
+}
+
 /// 서버가 보내준 방 상태 한 장.
 class VersusSnapshot {
   const VersusSnapshot({
@@ -102,6 +135,8 @@ class VersusSnapshot {
     required this.timeoutAt,
     required this.me,
     required this.opponent,
+    this.spectating = false,
+    this.spectators = const [],
   });
 
   factory VersusSnapshot.fromJson(Map<String, dynamic> json) {
@@ -125,6 +160,12 @@ class VersusSnapshot {
           ? VersusMe.fromJson(me)
           : const VersusMe(name: '', secret: null, guesses: [], rematch: false),
       opponent: opp is Map<String, dynamic> ? VersusOpponent.fromJson(opp) : null,
+      spectating: json['role'] == 'spectator',
+      spectators: [
+        if (json['spectators'] is List)
+          for (final item in (json['spectators'] as List).whereType<Map<String, dynamic>>())
+            VersusSpectator.fromJson(item),
+      ],
     );
   }
 
@@ -142,9 +183,24 @@ class VersusSnapshot {
   final VersusMe me;
   final VersusOpponent? opponent;
 
-  bool get myTurn => phase == VersusPhase.playing && turn == you;
+  /// 관전자로 보고 있는지. 이때 [me]는 첫 번째 선수, [opponent]는 두 번째 선수다.
+  final bool spectating;
 
-  bool get iWon => phase == VersusPhase.finished && winner == you;
+  /// 지금 관전 중인 사람들.
+  final List<VersusSpectator> spectators;
+
+  bool get myTurn => !spectating && phase == VersusPhase.playing && turn == you;
+
+  /// 관전 화면에서: [me] 쪽(첫 번째 선수) 차례인지.
+  bool get firstPlayerTurn => phase == VersusPhase.playing && turn == you;
+
+  bool get iWon => !spectating && phase == VersusPhase.finished && winner == you;
+
+  /// 이긴 사람 이름 (끝났을 때).
+  String? get winnerName {
+    if (phase != VersusPhase.finished || winner == null) return null;
+    return winner == you ? me.name : opponent?.name;
+  }
 
   bool get byForfeit => endReason == 'forfeit';
 }
