@@ -105,18 +105,20 @@ iOS 앱은 **iPhone 전용**입니다(`TARGETED_DEVICE_FAMILY = 1`). iPad 스크
 
 앱(Android/iOS)의 **홈, 결과, 랭킹, 대결 로비, 대결 대기·결과 화면 맨 아래**에 배너 광고(320×50)가 나옵니다. 숫자 키패드가 아래에 있는 게임 화면(혼자 하기, 숫자 정하기, 대결 중)에는 실수 클릭을 막기 위해 넣지 않았습니다(AdMob 정책). 웹에는 광고가 없습니다.
 
-지금은 **Google 테스트 광고 ID**로 동작합니다. 스토어에 올린 뒤 AdMob에서 앱을 등록·승인받으면 아래 값을 실제 ID로 바꿉니다.
+**Android는 실제 AdMob ID**가 들어가 있습니다. iOS는 아직 테스트 ID이고, iOS를 출시할 때 AdMob에 iOS 앱을 추가해 바꿉니다.
 
-| 어디 | 값 | 지금 (테스트) |
+| 어디 | 값 | 지금 |
 | --- | --- | --- |
-| `config/prod.json` → `ADMOB_ANDROID_APP_ID` | Android 앱 ID (`~` 들어간 것) | `ca-app-pub-3940256099942544~3347511713` |
-| `config/prod.json` → `ADMOB_ANDROID_BANNER_ID` | Android 배너 광고 단위 ID (`/` 들어간 것) | `ca-app-pub-3940256099942544/6300978111` |
-| `config/prod.json` → `ADMOB_IOS_BANNER_ID` | iOS 배너 광고 단위 ID | `ca-app-pub-3940256099942544/2934735716` |
-| `ios/Runner/Info.plist` → `GADApplicationIdentifier` | iOS 앱 ID | `ca-app-pub-3940256099942544~1458002511` |
+| `config/prod.json` → `ADMOB_ANDROID_APP_ID` | Android 앱 ID (`~` 들어간 것) | `ca-app-pub-3934873497580609~7638623260` (실제) |
+| `config/prod.json` → `ADMOB_ANDROID_BANNER_ID` | Android 배너 광고 단위 ID (`/` 들어간 것, 하단 배너) | `ca-app-pub-3934873497580609/3224735535` (실제) |
+| `config/prod.json` → `ADMOB_IOS_BANNER_ID` | iOS 배너 광고 단위 ID | `ca-app-pub-3940256099942544/2934735716` (테스트) |
+| `ios/Runner/Info.plist` → `GADApplicationIdentifier` | iOS 앱 ID | `ca-app-pub-3940256099942544~1458002511` (테스트) |
 
+- 디버그 빌드(`flutter run`)는 설정과 상관없이 항상 테스트 광고를 씁니다(`lib/ads/banner_ad_mobile.dart`). 실제 광고는 릴리스 빌드(스토어용 AAB)에서만 나옵니다.
+- `https://4s-challenge.github.io/app-ads.txt` (`web/app-ads.txt`)에 AdMob 게시자 ID 한 줄을 올려 두었습니다. Play 스토어 등록정보의 **웹사이트**를 `https://4s-challenge.github.io`로 넣어야 AdMob이 이 파일을 찾습니다.
+- 스토어에 출시한 뒤 AdMob **앱 › 앱 설정 › 앱 스토어 연결**로 Play 스토어 앱을 연결하면 AdMob 앱 검토가 시작됩니다. 통과 전에는 광고가 적게 나오거나 안 나올 수 있습니다.
 - Android 앱 ID는 빌드할 때 `config/prod.json`에서 `AndroidManifest.xml`로 들어갑니다(`android/app/build.gradle.kts`).
-- 바꾼 뒤 새 빌드를 올려야 실제 광고가 나옵니다. **실제 광고 ID로 바꾼 앱을 개발 중에 직접 눌러 보면 안 됩니다**(무효 클릭으로 계정이 제한될 수 있음). 내 기기에서 확인할 때는 AdMob **설정 › 테스트 기기**에 기기를 등록합니다.
-- 실제 ID로 바꾼 뒤 `https://4s-challenge.github.io/app-ads.txt`에 AdMob이 안내하는 한 줄을 올리면 광고 수익이 더 안정적입니다(`web/app-ads.txt` 파일을 만들면 웹 배포 때 함께 올라감). Play·App Store 등록 정보의 웹사이트 주소가 `https://4s-challenge.github.io`여야 합니다.
+- **스토어에서 받은 앱(릴리스)에 나오는 내 광고를 직접 누르면 안 됩니다**(무효 클릭으로 계정이 제한될 수 있음). 내 기기에서 확인할 때는 AdMob **설정 › 테스트 기기**에 기기를 등록합니다.
 - 유럽(EEA·영국) 이용자에게는 AdMob 동의 팝업(UMP)이 필요합니다. 처음에는 **한국(또는 유럽 제외 국가)에만 출시**하는 것을 권장합니다.
 
 ## 4. 등급 (IARC / App Store 연령 등급)
