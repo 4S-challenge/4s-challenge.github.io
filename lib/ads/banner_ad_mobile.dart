@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-import '../theme/app_theme.dart';
+import 'banner_frame.dart';
 
 /// Google 테스트 광고 단위 ID. 실제 ID는 config/prod.json에 넣는다.
 const _testBannerAndroid = 'ca-app-pub-3940256099942544/6300978111';
@@ -87,17 +87,9 @@ class _BottomBannerAdState extends State<BottomBannerAd> {
   Widget build(BuildContext context) {
     final ad = _ad;
     if (ad == null || !_loaded) return const SizedBox.shrink();
-    return Container(
-      color: AppColors.board,
-      alignment: Alignment.center,
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          width: ad.size.width.toDouble(),
-          height: ad.size.height.toDouble(),
-          child: AdWidget(ad: ad),
-        ),
-      ),
+    return BannerFrame(
+      size: Size(ad.size.width.toDouble(), ad.size.height.toDouble()),
+      child: AdWidget(ad: ad),
     );
   }
 }
