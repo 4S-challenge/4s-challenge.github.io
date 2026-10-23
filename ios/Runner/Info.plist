@@ -65,7 +65,7 @@
 	<!-- AdMob 앱 ID. 지금은 Google 테스트 앱 ID. 스토어 출시 후 AdMob에 앱을 등록하면
 	     실제 iOS 앱 ID(ca-app-pub-XXXX~YYYY)로 바꾼다 (docs/STORE.md 참고). -->
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<string>ca-app-pub-3934873497580609~9320078431</string>
 	<!-- 광고 성과 측정용 (Google 광고 네트워크) -->
 	<key>SKAdNetworkItems</key>
 	<array>
