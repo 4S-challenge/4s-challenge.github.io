@@ -167,7 +167,7 @@ void main() {
       find.descendant(of: find.byKey(const Key('versus-my-secret')), matching: find.text('1234')),
       findsOneWidget,
     );
-    expect(find.text('아직 없음'), findsNWidgets(2));
+    expect(find.byKey(const Key('versus-flash')), findsNothing);
     final timer = tester.widget<Text>(find.byKey(const Key('versus-timer')));
     expect(timer.data, matches(RegExp(r'^0:(30|29)$')));
 
@@ -192,14 +192,19 @@ void main() {
     expect(find.text('상대 차례'), findsWidgets);
     expect(find.text('BBB 차례예요 · 기다리는 중'), findsOneWidget);
     expect(find.text('5687'), findsOneWidget); // 내 추리 기록표
-    // 전광판: 내가 마지막으로 던진 숫자와 결과
-    final myBoard = find.byKey(const Key('versus-board-me'));
+    // 전광판: 방금 던진 숫자와 결과가 딱 떴다가
+    final flash = find.byKey(const Key('versus-flash'));
+    expect(flash, findsOneWidget);
     for (final d in ['5', '6', '8', '7']) {
-      expect(find.descendant(of: myBoard, matching: find.text(d)), findsOneWidget);
+      expect(find.descendant(of: flash, matching: find.text(d)), findsOneWidget);
     }
-    expect(find.descendant(of: myBoard, matching: find.text('2S')), findsOneWidget);
-    expect(find.descendant(of: myBoard, matching: find.text('2B')), findsOneWidget);
-    expect(find.text('2S'), findsNWidgets(2)); // 전광판 + 기록표
+    expect(find.descendant(of: flash, matching: find.text('2S')), findsOneWidget);
+    expect(find.descendant(of: flash, matching: find.text('2B')), findsOneWidget);
+    // 잠시 뒤 남은 시간으로 돌아간다.
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(flash, findsNothing);
+    expect(find.byKey(const Key('versus-timer')), findsOneWidget);
     expect(submitButton(tester).onPressed, isNull);
     final key5 = tester.widget<FilledButton>(
       find.descendant(of: find.byKey(const Key('vkey-5')), matching: find.byType(FilledButton)),
@@ -220,13 +225,13 @@ void main() {
         opponent: versusOpponent(ready: true, guesses: [g('1290', 2, 0)]),
       ),
     );
-    // 다시 내 차례: 차례 안내가 바뀌고, 전광판에 상대가 던진 숫자와 결과가 나온다.
+    // 다시 내 차례: 차례 안내가 바뀌고, 전광판에 상대가 던진 숫자와 결과가 뜬다.
     expect(find.text('내 차례! 숫자 4개를 골라 던지세요'), findsOneWidget);
-    final oppBoard = find.byKey(const Key('versus-board-opponent'));
+    expect(find.text('BBB'), findsWidgets);
     for (final d in ['1', '2', '9', '0']) {
-      expect(find.descendant(of: oppBoard, matching: find.text(d)), findsOneWidget);
+      expect(find.descendant(of: flash, matching: find.text(d)), findsOneWidget);
     }
-    expect(find.descendant(of: oppBoard, matching: find.text('2S')), findsOneWidget);
+    expect(find.descendant(of: flash, matching: find.text('2S')), findsOneWidget);
     await settle(tester); // 차례 알림 애니메이션
 
     await tester.tap(find.text('상대 추리'));
@@ -251,7 +256,12 @@ void main() {
     );
 
     expect(find.text('승리!'), findsOneWidget);
-    expect(find.text('2번 만에 상대 숫자를 맞혔어요'), findsOneWidget);
+    expect(find.text('BBB 님의 숫자를 먼저 맞혔어요'), findsOneWidget);
+    expect(find.textContaining('번 만에'), findsNothing);
+    final winner = find.byKey(const Key('versus-winner'));
+    for (final ch in ['A', 'A', 'A']) {
+      expect(find.descendant(of: winner, matching: find.text(ch)), findsWidgets);
+    }
     expect(find.text('5678'), findsWidgets);
 
     await tester.tap(find.byKey(const Key('versus-rematch')));
@@ -286,7 +296,7 @@ void main() {
       ),
     );
     expect(find.text('승리!'), findsOneWidget);
-    expect(find.text('상대가 방을 나가서 이겼어요'), findsOneWidget);
+    expect(find.text('BBB 님이 방을 나가서 이겼어요'), findsOneWidget);
     expect(find.text('상대가 나갔어요'), findsOneWidget);
   });
 

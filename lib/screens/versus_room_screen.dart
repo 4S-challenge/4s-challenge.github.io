@@ -52,6 +52,16 @@ class _VersusRoomScreenState extends State<VersusRoomScreen> {
   /// 내 차례가 될 때마다 1씩 늘어 차례 알림을 한 번 흔든다.
   int _turnAlerts = 0;
 
+  int _seenOppGuesses = 0;
+
+  /// 방금 던진 추리. 전광판에 잠깐 띄웠다가 남은 시간으로 돌아간다.
+  _Flash? _flash;
+  Timer? _flashTimer;
+  int _flashCount = 0;
+
+  /// 10초 이하 카운트다운에서 마지막으로 진동한 초.
+  int? _lastBuzzSecond;
+
   VersusSession get _s => _session!;
 
   @override
@@ -75,14 +85,17 @@ class _VersusRoomScreenState extends State<VersusRoomScreen> {
     _session = session;
     session.addListener(_onSessionChanged);
     _noticeSub = session.notices.listen(_showNotice);
-    _ticker = Timer.periodic(const Duration(milliseconds: 500), (_) {
-      if (mounted && _session?.snapshot?.phase == VersusPhase.playing) setState(() {});
+    _ticker = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      if (!mounted || _session?.snapshot?.phase != VersusPhase.playing) return;
+      _buzzCountdown();
+      setState(() {});
     });
   }
 
   @override
   void dispose() {
     _ticker?.cancel();
+    _flashTimer?.cancel();
     _noticeSub?.cancel();
     if (_wasMyTurn) _setWindowTitle(myTurn: false);
     _session?.removeListener(_onSessionChanged);
@@ -110,6 +123,18 @@ class _VersusRoomScreenState extends State<VersusRoomScreen> {
       _entry.clear();
     }
     if (newRound) _showOpponentGuesses = false;
+    final oppGuesses = snap.opponent?.guesses ?? const <GuessRecord>[];
+    // 대결 중 새로 던진 추리가 있으면 전광판에 띄운다 (다시 연결해서 받은 기록은 띄우지 않음).
+    final sameGame =
+        !newRound && _seenPhase == VersusPhase.playing && snap.phase == VersusPhase.playing;
+    if (sameGame && myGuesses > _seenMyGuesses) {
+      _showFlash(_Flash(record: snap.me.guesses.last, name: snap.me.name, mine: true));
+    } else if (sameGame && oppGuesses.length > _seenOppGuesses) {
+      _showFlash(_Flash(record: oppGuesses.last, name: snap.opponent?.name ?? '상대', mine: false));
+    } else if (snap.phase != VersusPhase.playing) {
+      _clearFlash();
+    }
+    _seenOppGuesses = oppGuesses.length;
     final myTurn = snap.phase == VersusPhase.playing && snap.myTurn;
     if (myTurn && !_wasMyTurn) {
       // 내 차례가 됐다: 진동, 알림 흔들기, 내 추리 기록으로 돌아오기.
@@ -123,6 +148,36 @@ class _VersusRoomScreenState extends State<VersusRoomScreen> {
     _seenPhase = snap.phase;
     _seenMyGuesses = myGuesses;
     if (mounted) setState(() {});
+  }
+
+  void _showFlash(_Flash flash) {
+    _flashTimer?.cancel();
+    _flash = flash;
+    _flashCount++;
+    _flashTimer = Timer(const Duration(milliseconds: 2600), () {
+      if (mounted) setState(_clearFlash);
+    });
+  }
+
+  void _clearFlash() {
+    _flashTimer?.cancel();
+    _flashTimer = null;
+    _flash = null;
+  }
+
+  /// 내 차례에 10초 이하로 남으면 초마다 짧게 진동한다.
+  void _buzzCountdown() {
+    final snap = _session?.snapshot;
+    final remaining = _session?.remaining;
+    if (snap == null || remaining == null || !snap.myTurn) return;
+    final seconds = (remaining.inMilliseconds / 1000).ceil();
+    if (seconds > 10 || seconds <= 0 || seconds == _lastBuzzSecond) return;
+    _lastBuzzSecond = seconds;
+    if (seconds <= 3) {
+      HapticFeedback.mediumImpact();
+    } else {
+      HapticFeedback.lightImpact();
+    }
   }
 
   /// 웹에서는 브라우저 탭 제목에도 내 차례를 띄운다 (다른 탭을 보고 있어도 알 수 있게).
@@ -448,7 +503,6 @@ class _VersusRoomScreenState extends State<VersusRoomScreen> {
     final myTurn = snap.myTurn;
     final remaining = session.remaining ?? Duration.zero;
     final records = _showOpponentGuesses ? (opp?.guesses ?? const <GuessRecord>[]) : snap.me.guesses;
-    final oppGuesses = opp?.guesses ?? const <GuessRecord>[];
 
     return LayoutBuilder(builder: (context, constraints) {
       // 작은 화면(예: iPhone SE)에서는 키패드와 입력칸을 줄여 기록표 자리를 남긴다.
@@ -460,12 +514,12 @@ class _VersusRoomScreenState extends State<VersusRoomScreen> {
           children: [
             _Scoreboard(
               myName: snap.me.name,
-              myLast: snap.me.guesses.isEmpty ? null : snap.me.guesses.last,
               oppName: opp?.name ?? '',
-              oppLast: oppGuesses.isEmpty ? null : oppGuesses.last,
               oppConnected: opp?.connected ?? false,
               myTurn: myTurn,
               remaining: remaining,
+              flash: _flash,
+              flashCount: _flashCount,
             ),
             const SizedBox(height: 8),
             _TurnBanner(
@@ -509,13 +563,13 @@ class _VersusRoomScreenState extends State<VersusRoomScreen> {
   Widget _finished(VersusSnapshot snap) {
     final opp = snap.opponent;
     final won = snap.iWon;
+    final oppName = opp?.name ?? '상대';
+    final winnerName = won ? snap.me.name : oppName;
     final String detail;
     if (snap.byForfeit) {
-      detail = won ? '상대가 방을 나가서 이겼어요' : '기권했어요';
+      detail = won ? '$oppName 님이 방을 나가서 이겼어요' : '기권했어요';
     } else {
-      detail = won
-          ? '${snap.me.guesses.length}번 만에 상대 숫자를 맞혔어요'
-          : '상대가 ${opp?.guesses.length ?? 0}번 만에 내 숫자를 맞혔어요';
+      detail = won ? '$oppName 님의 숫자를 먼저 맞혔어요' : '$oppName 님이 내 숫자를 먼저 맞혔어요';
     }
 
     final oppLeft = opp == null || opp.left;
@@ -544,7 +598,9 @@ class _VersusRoomScreenState extends State<VersusRoomScreen> {
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 14, letterSpacing: 3, color: AppColors.muted),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 14),
+                _WinnerPlate(name: winnerName, me: won),
+                const SizedBox(height: 10),
                 Text(
                   won ? '승리!' : '패배',
                   key: const Key('versus-outcome'),
@@ -566,7 +622,6 @@ class _VersusRoomScreenState extends State<VersusRoomScreen> {
                       child: _SecretCard(
                         label: '${opp?.name ?? '상대'}의 숫자',
                         secret: opp?.secret,
-                        tries: '내 시도 ${snap.me.guesses.length}회',
                         color: AppColors.strike,
                       ),
                     ),
@@ -575,7 +630,6 @@ class _VersusRoomScreenState extends State<VersusRoomScreen> {
                       child: _SecretCard(
                         label: '내 숫자',
                         secret: snap.me.secret,
-                        tries: '상대 시도 ${opp?.guesses.length ?? 0}회',
                         color: AppColors.ball,
                       ),
                     ),
@@ -822,98 +876,111 @@ class _EmptySeat extends StatelessWidget {
   }
 }
 
-/// 대결 전광판: 가운데 남은 시간, 양쪽에 각자 마지막으로 던진 숫자와 결과.
+/// 방금 던진 추리 하나 (전광판에 잠깐 띄움).
+class _Flash {
+  const _Flash({required this.record, required this.name, required this.mine});
+
+  final GuessRecord record;
+  final String name;
+  final bool mine;
+}
+
+/// 대결 전광판: 위에 두 사람과 차례, 아래 큰 화면에 남은 시간.
+/// 누가 던지면 그 숫자와 결과가 딱 떴다가 다시 남은 시간으로 돌아간다.
 class _Scoreboard extends StatelessWidget {
   const _Scoreboard({
     required this.myName,
-    required this.myLast,
     required this.oppName,
-    required this.oppLast,
     required this.oppConnected,
     required this.myTurn,
     required this.remaining,
+    required this.flash,
+    required this.flashCount,
   });
 
   final String myName;
-  final GuessRecord? myLast;
   final String oppName;
-  final GuessRecord? oppLast;
   final bool oppConnected;
   final bool myTurn;
   final Duration remaining;
+  final _Flash? flash;
+  final int flashCount;
 
   @override
   Widget build(BuildContext context) {
     final seconds = (remaining.inMilliseconds / 1000).ceil();
-    final urgent = seconds <= 10;
+    final current = flash;
+    final urgent = seconds <= 10 && current == null;
+    final Color borderColor;
+    if (urgent && myTurn) {
+      borderColor = AppColors.out;
+    } else if (myTurn) {
+      borderColor = AppColors.strike;
+    } else {
+      borderColor = AppColors.line;
+    }
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      padding: const EdgeInsets.all(8),
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: BoxDecoration(
         color: AppColors.board,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: myTurn ? AppColors.strike : AppColors.line,
-          width: myTurn ? 3 : 2,
-        ),
+        border: Border.all(color: borderColor, width: myTurn ? 3 : 2),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            child: _ScoreSide(
-              key: const Key('versus-board-me'),
-              label: '나',
-              name: myName,
-              last: myLast,
-              active: myTurn,
-              color: AppColors.strike,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '0:${seconds.toString().padLeft(2, '0')}',
-                  key: const Key('versus-timer'),
-                  style: AppFonts.mono(
-                    TextStyle(
-                      fontSize: 26,
-                      color: urgent ? AppColors.out : AppColors.strike,
-                    ),
+          Row(
+            children: [
+              Expanded(
+                child: _PlayerName(
+                  key: const Key('versus-board-me'),
+                  label: '나',
+                  name: myName,
+                  active: myTurn,
+                  color: AppColors.strike,
+                ),
+              ),
+              Container(
+                key: const Key('versus-turn'),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: myTurn ? AppColors.strike : AppColors.panel,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  myTurn ? '내 차례' : '상대 차례',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: myTurn ? AppColors.onStrike : AppColors.chalk,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Container(
-                  key: const Key('versus-turn'),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: myTurn ? AppColors.strike : AppColors.panel,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    myTurn ? '내 차례' : '상대 차례',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: myTurn ? AppColors.onStrike : AppColors.chalk,
-                    ),
-                  ),
+              ),
+              Expanded(
+                child: _PlayerName(
+                  key: const Key('versus-board-opponent'),
+                  label: oppConnected ? '상대' : '연결 끊김',
+                  labelColor: oppConnected ? null : AppColors.out,
+                  name: oppName,
+                  active: !myTurn,
+                  color: AppColors.ball,
+                  alignEnd: true,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          Expanded(
-            child: _ScoreSide(
-              key: const Key('versus-board-opponent'),
-              label: oppConnected ? '상대' : '연결 끊김',
-              labelColor: oppConnected ? null : AppColors.out,
-              name: oppName,
-              last: oppLast,
-              active: !myTurn,
-              color: AppColors.ball,
-              alignEnd: true,
+          const SizedBox(height: 6),
+          SizedBox(
+            height: 72,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              switchInCurve: Curves.easeOut,
+              transitionBuilder: (child, animation) =>
+                  FadeTransition(opacity: animation, child: child),
+              child: current != null
+                  ? _FlashView(key: ValueKey('flash-$flashCount'), flash: current)
+                  : _Clock(key: const ValueKey('clock'), seconds: seconds),
             ),
           ),
         ],
@@ -922,13 +989,11 @@ class _Scoreboard extends StatelessWidget {
   }
 }
 
-/// 전광판 한쪽: 이름, 마지막으로 던진 숫자 4칸, 결과.
-class _ScoreSide extends StatelessWidget {
-  const _ScoreSide({
+class _PlayerName extends StatelessWidget {
+  const _PlayerName({
     super.key,
     required this.label,
     required this.name,
-    required this.last,
     required this.active,
     required this.color,
     this.labelColor,
@@ -938,94 +1003,199 @@ class _ScoreSide extends StatelessWidget {
   final String label;
   final Color? labelColor;
   final String name;
-  final GuessRecord? last;
-
-  /// 지금 이쪽 차례인지. 차례인 쪽을 밝게 표시한다.
   final bool active;
   final Color color;
   final bool alignEnd;
 
   @override
   Widget build(BuildContext context) {
-    final align = alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start;
-    final digits = last?.guess.split('') ?? const ['-', '-', '-', '-'];
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
-      decoration: BoxDecoration(
-        color: active ? AppColors.panelHigh : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: align,
+    return Text.rich(
+      TextSpan(
         children: [
-          Text.rich(
-            TextSpan(
-              children: [
-                TextSpan(
-                  text: '$label ',
-                  style: TextStyle(fontSize: 12, color: labelColor ?? AppColors.muted),
-                ),
-                TextSpan(
-                  text: name,
-                  style: AppFonts.mono(
-                    TextStyle(fontSize: 15, letterSpacing: 2, color: active ? color : AppColors.chalk),
-                  ),
-                ),
-              ],
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          TextSpan(
+            text: '$label ',
+            style: TextStyle(fontSize: 12, color: labelColor ?? AppColors.muted),
           ),
-          const SizedBox(height: 6),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (var i = 0; i < digits.length; i++) ...[
-                  if (i > 0) const SizedBox(width: 3),
-                  _MiniDigit(text: digits[i], color: last == null ? AppColors.disabled : color),
-                ],
-              ],
+          TextSpan(
+            text: name,
+            style: AppFonts.mono(
+              TextStyle(
+                fontSize: 17,
+                letterSpacing: 2,
+                color: active ? color : AppColors.chalk,
+              ),
             ),
           ),
-          const SizedBox(height: 6),
-          SizedBox(
-            height: 26,
-            child: last == null
-                ? const Center(
-                    child: Text('아직 없음', style: TextStyle(fontSize: 12, color: AppColors.muted)),
-                  )
-                : FittedBox(fit: BoxFit.scaleDown, child: ResultBadges(result: last!.result)),
+        ],
+      ),
+      textAlign: alignEnd ? TextAlign.right : TextAlign.left,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+}
+
+/// 남은 시간. 10초부터는 빨간색으로, 초가 바뀔 때마다 크게 튀어나왔다 줄어든다.
+class _Clock extends StatelessWidget {
+  const _Clock({super.key, required this.seconds});
+
+  final int seconds;
+
+  @override
+  Widget build(BuildContext context) {
+    final urgent = seconds <= 10;
+    final text = Text(
+      '0:${seconds.toString().padLeft(2, '0')}',
+      key: const Key('versus-timer'),
+      style: AppFonts.mono(
+        TextStyle(
+          fontSize: urgent ? 52 : 46,
+          height: 1,
+          color: urgent ? AppColors.out : AppColors.strike,
+          shadows: urgent
+              ? const [Shadow(color: Color(0xAAE8836B), blurRadius: 18)]
+              : const [Shadow(color: Color(0x66F5B83D), blurRadius: 12)],
+        ),
+      ),
+    );
+    if (!urgent) return Center(child: text);
+    // 초마다 새 애니메이션: 크게 튀어나왔다가 제자리로. 3초부터는 더 크게.
+    return Center(
+      child: TweenAnimationBuilder<double>(
+        key: ValueKey('tick-$seconds'),
+        tween: Tween(begin: seconds <= 3 ? 1.6 : 1.4, end: 1),
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutBack,
+        builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+        child: text,
+      ),
+    );
+  }
+}
+
+/// 방금 던진 숫자와 결과. 숫자가 한 칸씩 딱딱 켜지고 결과가 뒤따른다.
+class _FlashView extends StatelessWidget {
+  const _FlashView({super.key, required this.flash});
+
+  final _Flash flash;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = flash.mine ? AppColors.strike : AppColors.ball;
+    final digits = flash.record.guess.split('');
+
+    Widget pop(int index, Widget child) {
+      final delay = index * 90;
+      final total = 240 + delay;
+      return TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: Duration(milliseconds: total),
+        curve: Interval(delay / total, 1, curve: Curves.easeOutBack),
+        builder: (context, t, child) => Opacity(
+          opacity: t.clamp(0.0, 1.0),
+          child: Transform.scale(scale: 0.4 + 0.6 * t, child: child),
+        ),
+        child: child,
+      );
+    }
+
+    return FittedBox(
+      key: const Key('versus-flash'),
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                flash.mine ? '나' : '상대',
+                style: const TextStyle(fontSize: 11, color: AppColors.muted),
+              ),
+              Text(
+                flash.name,
+                style: AppFonts.mono(TextStyle(fontSize: 16, letterSpacing: 2, color: color)),
+              ),
+            ],
           ),
+          const SizedBox(width: 12),
+          for (var i = 0; i < digits.length; i++) ...[
+            if (i > 0) const SizedBox(width: 5),
+            pop(
+              i,
+              Container(
+                width: 40,
+                height: 54,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.ground,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: color, width: 2),
+                ),
+                child: Text(
+                  digits[i],
+                  style: AppFonts.mono(TextStyle(fontSize: 32, height: 1, color: color)),
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(width: 12),
+          pop(digits.length, ResultBadges(result: flash.record.result)),
         ],
       ),
     );
   }
 }
 
-class _MiniDigit extends StatelessWidget {
-  const _MiniDigit({required this.text, required this.color});
+/// 결과 화면의 승자 표시: 트로피와 승자 이니셜.
+class _WinnerPlate extends StatelessWidget {
+  const _WinnerPlate({required this.name, required this.me});
 
-  final String text;
-  final Color color;
+  final String name;
+  final bool me;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 24,
-      height: 32,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: AppColors.ground,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Text(
-        text,
-        style: AppFonts.mono(TextStyle(fontSize: 20, height: 1, color: color)),
-      ),
+    final color = me ? AppColors.strike : AppColors.ball;
+    return Column(
+      key: const Key('versus-winner'),
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.emoji_events, size: 28, color: color),
+            const SizedBox(width: 8),
+            Text(
+              'WINNER',
+              style: AppFonts.mono(TextStyle(fontSize: 16, letterSpacing: 4, color: color)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (var i = 0; i < name.length; i++) ...[
+              if (i > 0) const SizedBox(width: 8),
+              Container(
+                width: 58,
+                height: 72,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.board,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: color, width: 2),
+                ),
+                child: Text(
+                  name[i],
+                  style: AppFonts.mono(TextStyle(fontSize: 38, height: 1, color: color)),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
     );
   }
 }
@@ -1229,13 +1399,11 @@ class _SecretCard extends StatelessWidget {
   const _SecretCard({
     required this.label,
     required this.secret,
-    required this.tries,
     required this.color,
   });
 
   final String label;
   final String? secret;
-  final String tries;
   final Color color;
 
   @override
@@ -1258,8 +1426,6 @@ class _SecretCard extends StatelessWidget {
             secret ?? '????',
             style: AppFonts.mono(TextStyle(fontSize: 28, letterSpacing: 6, color: color)),
           ),
-          const SizedBox(height: 6),
-          Text(tries, style: const TextStyle(fontSize: 13)),
         ],
       ),
     );
