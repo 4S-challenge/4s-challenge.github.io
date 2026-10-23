@@ -47,6 +47,10 @@ class _VersusRoomScreenState extends State<VersusRoomScreen> {
   int _seenMyGuesses = 0;
   int _seenRound = 0;
   VersusPhase? _seenPhase;
+  bool _wasMyTurn = false;
+
+  /// 내 차례가 될 때마다 1씩 늘어 차례 알림을 한 번 흔든다.
+  int _turnAlerts = 0;
 
   VersusSession get _s => _session!;
 
@@ -80,6 +84,7 @@ class _VersusRoomScreenState extends State<VersusRoomScreen> {
   void dispose() {
     _ticker?.cancel();
     _noticeSub?.cancel();
+    if (_wasMyTurn) _setWindowTitle(myTurn: false);
     _session?.removeListener(_onSessionChanged);
     if (_ownsSession) _session?.dispose();
     _entry.dispose();
@@ -105,10 +110,29 @@ class _VersusRoomScreenState extends State<VersusRoomScreen> {
       _entry.clear();
     }
     if (newRound) _showOpponentGuesses = false;
+    final myTurn = snap.phase == VersusPhase.playing && snap.myTurn;
+    if (myTurn && !_wasMyTurn) {
+      // 내 차례가 됐다: 진동, 알림 흔들기, 내 추리 기록으로 돌아오기.
+      _turnAlerts++;
+      _showOpponentGuesses = false;
+      HapticFeedback.heavyImpact();
+    }
+    if (myTurn != _wasMyTurn) _setWindowTitle(myTurn: myTurn);
+    _wasMyTurn = myTurn;
     _seenRound = snap.round;
     _seenPhase = snap.phase;
     _seenMyGuesses = myGuesses;
     if (mounted) setState(() {});
+  }
+
+  /// 웹에서는 브라우저 탭 제목에도 내 차례를 띄운다 (다른 탭을 보고 있어도 알 수 있게).
+  void _setWindowTitle({required bool myTurn}) {
+    SystemChrome.setApplicationSwitcherDescription(
+      ApplicationSwitcherDescription(
+        label: myTurn ? '▶ 내 차례! - 4S 챌린지' : '4S 챌린지 - 숫자야구',
+        primaryColor: AppColors.ground.toARGB32(),
+      ),
+    );
   }
 
   void _submit() {
@@ -223,7 +247,15 @@ class _VersusRoomScreenState extends State<VersusRoomScreen> {
                   builder: (context, _) => Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _TopBar(code: widget.code, onClose: _requestLeave),
+                      _TopBar(
+                        code: widget.code,
+                        onClose: _requestLeave,
+                        // 대결 중에는 방 코드 대신 상대가 맞혀야 할 내 숫자를 위에 둔다.
+                        secret: session.fatalError == null &&
+                                session.snapshot?.phase == VersusPhase.playing
+                            ? session.snapshot?.me.secret
+                            : null,
+                      ),
                       if (session.status == VersusStatus.reconnecting)
                         const _Banner(text: '연결이 끊겨 다시 연결하는 중…'),
                       Expanded(child: _body(session)),
@@ -416,61 +448,60 @@ class _VersusRoomScreenState extends State<VersusRoomScreen> {
     final myTurn = snap.myTurn;
     final remaining = session.remaining ?? Duration.zero;
     final records = _showOpponentGuesses ? (opp?.guesses ?? const <GuessRecord>[]) : snap.me.guesses;
+    final oppGuesses = opp?.guesses ?? const <GuessRecord>[];
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _Scoreboard(
-            myName: snap.me.name,
-            myTries: snap.me.guesses.length,
-            oppName: opp?.name ?? '',
-            oppTries: opp?.guesses.length ?? 0,
-            oppConnected: opp?.connected ?? false,
-            myTurn: myTurn,
-            remaining: remaining,
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Text('내 비밀 숫자', style: TextStyle(fontSize: 13, color: AppColors.muted)),
-              const Spacer(),
-              Text(
-                snap.me.secret ?? '',
-                style: AppFonts.mono(
-                  const TextStyle(fontSize: 16, letterSpacing: 6, color: AppColors.chalk),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _Tabs(
-            left: '내 추리 ${snap.me.guesses.length}',
-            right: '상대 추리 ${opp?.guesses.length ?? 0}',
-            rightSelected: _showOpponentGuesses,
-            onChanged: (right) => setState(() => _showOpponentGuesses = right),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: _Board(
-              records: records,
-              empty: _showOpponentGuesses ? '상대가 아직 던지지 않았어요' : '숫자 4개를 골라 던져 보세요',
+    return LayoutBuilder(builder: (context, constraints) {
+      // 작은 화면(예: iPhone SE)에서는 키패드와 입력칸을 줄여 기록표 자리를 남긴다.
+      final compact = constraints.maxHeight < 600;
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _Scoreboard(
+              myName: snap.me.name,
+              myLast: snap.me.guesses.isEmpty ? null : snap.me.guesses.last,
+              oppName: opp?.name ?? '',
+              oppLast: oppGuesses.isEmpty ? null : oppGuesses.last,
+              oppConnected: opp?.connected ?? false,
+              myTurn: myTurn,
+              remaining: remaining,
             ),
-          ),
-          const SizedBox(height: 12),
-          DigitSlots(digits: _entry.digits, size: 54, showCursor: myTurn),
-          const SizedBox(height: 12),
-          DigitPad(
-            entry: _entry,
-            enabled: myTurn && session.status == VersusStatus.open,
-            submitLabel: myTurn ? '던지기' : '상대 차례',
-            onSubmit: _submit,
-            keyHeight: 48,
-          ),
-        ],
-      ),
-    );
+            const SizedBox(height: 8),
+            _TurnBanner(
+              myTurn: myTurn,
+              opponentName: opp?.name ?? '상대',
+              remaining: remaining,
+              alerts: _turnAlerts,
+            ),
+            const SizedBox(height: 8),
+            _Tabs(
+              left: '내 추리',
+              right: '상대 추리',
+              rightSelected: _showOpponentGuesses,
+              onChanged: (right) => setState(() => _showOpponentGuesses = right),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: _Board(
+                records: records,
+                empty: _showOpponentGuesses ? '상대가 아직 던지지 않았어요' : '숫자 4개를 골라 던져 보세요',
+              ),
+            ),
+            const SizedBox(height: 12),
+            DigitSlots(digits: _entry.digits, size: compact ? 44 : 54, showCursor: myTurn),
+            SizedBox(height: compact ? 8 : 12),
+            DigitPad(
+              entry: _entry,
+              enabled: myTurn && session.status == VersusStatus.open,
+              submitLabel: myTurn ? '던지기' : '상대 차례',
+              onSubmit: _submit,
+              keyHeight: compact ? 42 : 48,
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   // ── 결과 ────────────────────────────────────────────
@@ -552,8 +583,8 @@ class _VersusRoomScreenState extends State<VersusRoomScreen> {
                 ),
                 const SizedBox(height: 16),
                 _Tabs(
-                  left: '내 추리 ${snap.me.guesses.length}',
-                  right: '상대 추리 ${opp?.guesses.length ?? 0}',
+                  left: '내 추리',
+                  right: '상대 추리',
                   rightSelected: _showOpponentGuesses,
                   onChanged: (right) => setState(() => _showOpponentGuesses = right),
                 ),
@@ -605,10 +636,13 @@ class _VersusRoomScreenState extends State<VersusRoomScreen> {
 // ── 작은 위젯들 ───────────────────────────────────────
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.code, required this.onClose});
+  const _TopBar({required this.code, required this.onClose, this.secret});
 
   final String code;
   final VoidCallback onClose;
+
+  /// 대결 중이면 내 비밀 숫자. 있으면 제목 대신 보여준다.
+  final String? secret;
 
   @override
   Widget build(BuildContext context) {
@@ -625,11 +659,26 @@ class _TopBar extends StatelessWidget {
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           ),
           Expanded(
-            child: Text(
-              '친구와 대결 · $code',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-            ),
+            child: secret == null
+                ? Text(
+                    '친구와 대결 · $code',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  )
+                : Row(
+                    key: const Key('versus-my-secret'),
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('내 비밀 숫자', style: TextStyle(fontSize: 13, color: AppColors.muted)),
+                      const SizedBox(width: 10),
+                      Text(
+                        secret!,
+                        style: AppFonts.mono(
+                          const TextStyle(fontSize: 20, letterSpacing: 5, color: AppColors.chalk),
+                        ),
+                      ),
+                    ],
+                  ),
           ),
           const SizedBox(width: 48),
         ],
@@ -773,21 +822,22 @@ class _EmptySeat extends StatelessWidget {
   }
 }
 
+/// 대결 전광판: 가운데 남은 시간, 양쪽에 각자 마지막으로 던진 숫자와 결과.
 class _Scoreboard extends StatelessWidget {
   const _Scoreboard({
     required this.myName,
-    required this.myTries,
+    required this.myLast,
     required this.oppName,
-    required this.oppTries,
+    required this.oppLast,
     required this.oppConnected,
     required this.myTurn,
     required this.remaining,
   });
 
   final String myName;
-  final int myTries;
+  final GuessRecord? myLast;
   final String oppName;
-  final int oppTries;
+  final GuessRecord? oppLast;
   final bool oppConnected;
   final bool myTurn;
   final Duration remaining;
@@ -796,84 +846,297 @@ class _Scoreboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final seconds = (remaining.inMilliseconds / 1000).ceil();
     final urgent = seconds <= 10;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: AppColors.board,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.line, width: 2),
+        border: Border.all(
+          color: myTurn ? AppColors.strike : AppColors.line,
+          width: myTurn ? 3 : 2,
+        ),
       ),
       child: Row(
         children: [
           Expanded(
+            child: _ScoreSide(
+              key: const Key('versus-board-me'),
+              label: '나',
+              name: myName,
+              last: myLast,
+              active: myTurn,
+              color: AppColors.strike,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('나', style: TextStyle(fontSize: 12, color: AppColors.muted)),
                 Text(
-                  myName,
-                  style: AppFonts.mono(const TextStyle(fontSize: 18, letterSpacing: 2)),
+                  '0:${seconds.toString().padLeft(2, '0')}',
+                  key: const Key('versus-timer'),
+                  style: AppFonts.mono(
+                    TextStyle(
+                      fontSize: 26,
+                      color: urgent ? AppColors.out : AppColors.strike,
+                    ),
+                  ),
                 ),
-                Text(
-                  '$myTries회 시도',
-                  style: AppFonts.mono(const TextStyle(fontSize: 13, color: AppColors.strike)),
+                const SizedBox(height: 2),
+                Container(
+                  key: const Key('versus-turn'),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: myTurn ? AppColors.strike : AppColors.panel,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    myTurn ? '내 차례' : '상대 차례',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: myTurn ? AppColors.onStrike : AppColors.chalk,
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
-          Column(
-            children: [
-              Text(
-                '0:${seconds.toString().padLeft(2, '0')}',
-                key: const Key('versus-timer'),
-                style: AppFonts.mono(
-                  TextStyle(
-                    fontSize: 26,
-                    color: urgent ? AppColors.out : AppColors.strike,
-                  ),
-                ),
-              ),
-              Container(
-                key: const Key('versus-turn'),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: myTurn ? AppColors.strike : AppColors.panel,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  myTurn ? '내 차례' : '상대 차례',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: myTurn ? AppColors.onStrike : AppColors.chalk,
-                  ),
-                ),
-              ),
-            ],
-          ),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  oppConnected ? '상대' : '상대 · 연결 끊김',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: oppConnected ? AppColors.muted : AppColors.out,
-                  ),
-                ),
-                Text(
-                  oppName,
-                  style: AppFonts.mono(const TextStyle(fontSize: 18, letterSpacing: 2)),
-                ),
-                Text(
-                  '$oppTries회 시도',
-                  style: AppFonts.mono(const TextStyle(fontSize: 13, color: AppColors.ball)),
-                ),
-              ],
+            child: _ScoreSide(
+              key: const Key('versus-board-opponent'),
+              label: oppConnected ? '상대' : '연결 끊김',
+              labelColor: oppConnected ? null : AppColors.out,
+              name: oppName,
+              last: oppLast,
+              active: !myTurn,
+              color: AppColors.ball,
+              alignEnd: true,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 전광판 한쪽: 이름, 마지막으로 던진 숫자 4칸, 결과.
+class _ScoreSide extends StatelessWidget {
+  const _ScoreSide({
+    super.key,
+    required this.label,
+    required this.name,
+    required this.last,
+    required this.active,
+    required this.color,
+    this.labelColor,
+    this.alignEnd = false,
+  });
+
+  final String label;
+  final Color? labelColor;
+  final String name;
+  final GuessRecord? last;
+
+  /// 지금 이쪽 차례인지. 차례인 쪽을 밝게 표시한다.
+  final bool active;
+  final Color color;
+  final bool alignEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    final align = alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    final digits = last?.guess.split('') ?? const ['-', '-', '-', '-'];
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+      decoration: BoxDecoration(
+        color: active ? AppColors.panelHigh : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: align,
+        children: [
+          Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: '$label ',
+                  style: TextStyle(fontSize: 12, color: labelColor ?? AppColors.muted),
+                ),
+                TextSpan(
+                  text: name,
+                  style: AppFonts.mono(
+                    TextStyle(fontSize: 15, letterSpacing: 2, color: active ? color : AppColors.chalk),
+                  ),
+                ),
+              ],
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 6),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var i = 0; i < digits.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 3),
+                  _MiniDigit(text: digits[i], color: last == null ? AppColors.disabled : color),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          SizedBox(
+            height: 26,
+            child: last == null
+                ? const Center(
+                    child: Text('아직 없음', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+                  )
+                : FittedBox(fit: BoxFit.scaleDown, child: ResultBadges(result: last!.result)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniDigit extends StatelessWidget {
+  const _MiniDigit({required this.text, required this.color});
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 24,
+      height: 32,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.ground,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Text(
+        text,
+        style: AppFonts.mono(TextStyle(fontSize: 20, height: 1, color: color)),
+      ),
+    );
+  }
+}
+
+/// 전광판 아래 차례 안내. 내 차례가 되면 한 번 크게 흔들리고 노란색으로 바뀐다.
+class _TurnBanner extends StatefulWidget {
+  const _TurnBanner({
+    required this.myTurn,
+    required this.opponentName,
+    required this.remaining,
+    required this.alerts,
+  });
+
+  final bool myTurn;
+  final String opponentName;
+  final Duration remaining;
+
+  /// 바뀔 때마다 알림 애니메이션을 한 번 돌린다.
+  final int alerts;
+
+  @override
+  State<_TurnBanner> createState() => _TurnBannerState();
+}
+
+class _TurnBannerState extends State<_TurnBanner> with SingleTickerProviderStateMixin {
+  late final _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  );
+
+  late final Animation<double> _scale = TweenSequence<double>([
+    TweenSequenceItem(tween: Tween(begin: 1, end: 1.07), weight: 1),
+    TweenSequenceItem(tween: Tween(begin: 1.07, end: 1), weight: 1),
+    TweenSequenceItem(tween: Tween(begin: 1, end: 1.07), weight: 1),
+    TweenSequenceItem(tween: Tween(begin: 1.07, end: 1), weight: 1),
+  ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.myTurn) _controller.forward(from: 0);
+  }
+
+  @override
+  void didUpdateWidget(covariant _TurnBanner oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.alerts != oldWidget.alerts && widget.myTurn) {
+      _controller.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final seconds = (widget.remaining.inMilliseconds / 1000).ceil();
+    final urgent = widget.myTurn && seconds <= 10;
+    final Color background;
+    final Color foreground;
+    final String text;
+    final IconData icon;
+    if (!widget.myTurn) {
+      background = AppColors.panel;
+      foreground = AppColors.muted;
+      text = '${widget.opponentName} 차례예요 · 기다리는 중';
+      icon = Icons.hourglass_top;
+    } else if (urgent) {
+      background = AppColors.out;
+      foreground = AppColors.onOut;
+      text = '$seconds초 남았어요! 서둘러 던지세요';
+      icon = Icons.timer;
+    } else {
+      background = AppColors.strike;
+      foreground = AppColors.onStrike;
+      text = '내 차례! 숫자 4개를 골라 던지세요';
+      icon = Icons.sports_baseball;
+    }
+    return ScaleTransition(
+      scale: _scale,
+      child: AnimatedContainer(
+        key: const Key('versus-turn-banner'),
+        duration: const Duration(milliseconds: 250),
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 20, color: foreground),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: widget.myTurn ? 16 : 14,
+                  fontWeight: widget.myTurn ? FontWeight.w800 : FontWeight.w500,
+                  color: foreground,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

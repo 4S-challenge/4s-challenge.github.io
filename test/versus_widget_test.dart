@@ -162,6 +162,12 @@ void main() {
     );
 
     expect(find.text('내 차례'), findsOneWidget);
+    expect(find.text('내 차례! 숫자 4개를 골라 던지세요'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byKey(const Key('versus-my-secret')), matching: find.text('1234')),
+      findsOneWidget,
+    );
+    expect(find.text('아직 없음'), findsNWidgets(2));
     final timer = tester.widget<Text>(find.byKey(const Key('versus-timer')));
     expect(timer.data, matches(RegExp(r'^0:(30|29)$')));
 
@@ -184,9 +190,16 @@ void main() {
       ),
     );
     expect(find.text('상대 차례'), findsWidgets);
-    expect(find.text('5687'), findsOneWidget);
-    expect(find.text('2S'), findsOneWidget);
-    expect(find.text('2B'), findsOneWidget);
+    expect(find.text('BBB 차례예요 · 기다리는 중'), findsOneWidget);
+    expect(find.text('5687'), findsOneWidget); // 내 추리 기록표
+    // 전광판: 내가 마지막으로 던진 숫자와 결과
+    final myBoard = find.byKey(const Key('versus-board-me'));
+    for (final d in ['5', '6', '8', '7']) {
+      expect(find.descendant(of: myBoard, matching: find.text(d)), findsOneWidget);
+    }
+    expect(find.descendant(of: myBoard, matching: find.text('2S')), findsOneWidget);
+    expect(find.descendant(of: myBoard, matching: find.text('2B')), findsOneWidget);
+    expect(find.text('2S'), findsNWidgets(2)); // 전광판 + 기록표
     expect(submitButton(tester).onPressed, isNull);
     final key5 = tester.widget<FilledButton>(
       find.descendant(of: find.byKey(const Key('vkey-5')), matching: find.byType(FilledButton)),
@@ -207,7 +220,16 @@ void main() {
         opponent: versusOpponent(ready: true, guesses: [g('1290', 2, 0)]),
       ),
     );
-    await tester.tap(find.text('상대 추리 1'));
+    // 다시 내 차례: 차례 안내가 바뀌고, 전광판에 상대가 던진 숫자와 결과가 나온다.
+    expect(find.text('내 차례! 숫자 4개를 골라 던지세요'), findsOneWidget);
+    final oppBoard = find.byKey(const Key('versus-board-opponent'));
+    for (final d in ['1', '2', '9', '0']) {
+      expect(find.descendant(of: oppBoard, matching: find.text(d)), findsOneWidget);
+    }
+    expect(find.descendant(of: oppBoard, matching: find.text('2S')), findsOneWidget);
+    await settle(tester); // 차례 알림 애니메이션
+
+    await tester.tap(find.text('상대 추리'));
     await tester.pump();
     expect(find.text('1290'), findsOneWidget);
   });

@@ -2,11 +2,17 @@ name: Store screenshots
 
 # 스토어 스크린샷을 실제 앱 화면으로 만든다 (Actions에서 직접 실행).
 # 만든 이미지는 Artifacts(store-screenshots)로 올라간다. 문구 얹기는 docs/STORE.md 참고.
+# update_store를 켜면 문구를 얹어 store/screenshots를 갱신하고, 실행한 브랜치에 커밋한다.
 on:
   workflow_dispatch:
+    inputs:
+      update_store:
+        description: 'store/screenshots를 갱신해 이 브랜치에 커밋'
+        type: boolean
+        default: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   screenshots:
@@ -42,3 +48,21 @@ jobs:
         with:
           name: store-screenshots
           path: store_screenshots/out
+
+      - name: Update store/screenshots
+        if: ${{ inputs.update_store }}
+        run: |
+          fail() { echo "::error title=$1::$(tail -c 3000 log.txt | tr '\n' '|')"; exit 1; }
+          { sudo apt-get update -q && sudo apt-get install -yq fonts-noto-cjk fonts-noto-cjk-extra python3-pil; } > log.txt 2>&1 || fail apt
+          ls /usr/share/fonts/opentype/noto > log.txt 2>&1 || fail fonts
+          /usr/bin/python3 tools/make_store_screenshots.py > log.txt 2>&1 || fail python
+          rm -f log.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add store/screenshots
+          if git diff --cached --quiet; then
+            echo "바뀐 스크린샷 없음"
+          else
+            git commit -m "스토어 스크린샷 갱신"
+            git push > log.txt 2>&1 || fail push
+          fi
