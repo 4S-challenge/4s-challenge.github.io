@@ -2,8 +2,17 @@
 
 숨겨진 네 자리 숫자를 추리하는 숫자야구 게임. Flutter 하나로 웹과 Android/iOS 앱을 함께 만듭니다.
 
-- 웹: https://4s-challenge.github.io
-- 개인정보처리방침: https://4s-challenge.github.io/privacy.html (`web/privacy.html`, 스토어 등록에 이 주소를 씀)
+- 웹: https://4s-challenge.ohsangplay.com
+- 개인정보처리방침: https://4s-challenge.ohsangplay.com/privacy.html (`web/privacy.html`, 스토어 등록에 이 주소를 씀)
+- 예전 주소 `https://4s-challenge.github.io`는 GitHub가 새 주소로 자동으로 넘겨준다.
+
+### 도메인 (4s-challenge.ohsangplay.com)
+
+웹은 GitHub Pages에서 그대로 호스팅하고, 주소만 Cloudflare에서 산 `ohsangplay.com`의 하위 도메인으로 쓴다.
+
+1. Cloudflare 대시보드 → `ohsangplay.com` → **DNS → 레코드 추가**: 유형 `CNAME`, 이름 `4s-challenge`, 대상 `4s-challenge.github.io`, **프록시 상태: DNS 전용(회색 구름)**. 주황 구름(프록시)이면 GitHub가 HTTPS 인증서를 발급하지 못한다.
+2. GitHub 저장소 **Settings → Pages → Custom domain**에 `4s-challenge.ohsangplay.com` 저장 → 인증서가 나오면 **Enforce HTTPS** 켜기. (Actions로 배포하므로 `CNAME` 파일은 필요 없다.)
+3. (권장) GitHub 조직 **Settings → Pages → Verified domains**에 `ohsangplay.com`을 추가하고 안내하는 TXT 레코드를 DNS에 넣는다. 다른 사람이 이 도메인을 자기 Pages에 연결하지 못하게 막는다.
 
 ## 규칙
 
@@ -56,7 +65,7 @@ worker/               # Cloudflare Worker 랭킹 서버 (TypeScript + D1)
 
 - 번갈아 한 번씩 던지고, 상대 숫자를 먼저 4S로 맞히면 승리. 차례당 30초, 넘기면 차례가 넘어감
 - 각자 상대가 맞힐 비밀 숫자를 직접 정함 (서버만 알고, 끝난 뒤 공개)
-- 방 만들기 → 4글자 방 코드 또는 초대 링크(`https://4s-challenge.github.io/?room=CODE`)로 입장
+- 방 만들기 → 4글자 방 코드 또는 초대 링크(`https://4s-challenge.ohsangplay.com/?room=CODE`)로 입장
 - 대결 중 나가면 기권패. 연결이 끊기면 자동으로 다시 연결하고 게임을 이어감
 - 끝난 뒤 둘 다 '한 판 더'를 누르면 선공을 바꿔 새 판
 
@@ -162,7 +171,7 @@ dart run flutter_launcher_icons
 
 ### 초대 링크로 앱 열기 (App Links / Universal Links)
 
-초대 링크 `https://4s-challenge.github.io/?room=CODE`를 누르면, 앱이 설치된 기기에서는 앱의 대결 화면이 방 코드가 채워진 채로 열립니다. 앱이 없거나 아래 설정 전이면 지금처럼 웹이 열립니다. 링크 처리는 `lib/invite_link.dart`, `lib/app.dart`(`app_links` 패키지)에 있습니다.
+초대 링크 `https://4s-challenge.ohsangplay.com/?room=CODE`를 누르면, 앱이 설치된 기기에서는 앱의 대결 화면이 방 코드가 채워진 채로 열립니다. 앱이 없거나 아래 설정 전이면 지금처럼 웹이 열립니다. 링크 처리는 `lib/invite_link.dart`, `lib/app.dart`(`app_links` 패키지)에 있습니다.
 
 Android·iOS가 "이 도메인은 이 앱 것"이라고 확인하려면 웹에 검증 파일이 있어야 합니다. 두 파일은 `main` 배포 때 CI가 저장소 변수로 만듭니다(**Settings → Secrets and variables → Actions → Variables**).
 
@@ -173,8 +182,8 @@ Android·iOS가 "이 도메인은 이 앱 것"이라고 확인하려면 웹에 �
 
 변수를 넣은 뒤 `main`에 배포하고 확인합니다.
 
-- Android: `https://4s-challenge.github.io/.well-known/assetlinks.json` 이 열리는지, 기기에서 `adb shell pm get-app-links com.ohsang.play.fourschallenge` 결과가 `verified`인지
-- iOS: `https://app-site-association.cdn-apple.com/a/v1/4s-challenge.github.io` 에서 Apple이 파일을 가져갔는지 (반영까지 최대 하루)
+- Android: `https://4s-challenge.ohsangplay.com/.well-known/assetlinks.json` 이 열리는지, 기기에서 `adb shell pm get-app-links com.ohsang.play.fourschallenge` 결과가 `verified`인지
+- iOS: `https://app-site-association.cdn-apple.com/a/v1/4s-challenge.ohsangplay.com` 에서 Apple이 파일을 가져갔는지 (반영까지 최대 하루)
 
 Android는 경로 `/`만 앱으로 받으므로 `/privacy.html` 같은 다른 페이지는 브라우저로 열립니다. iOS는 `?room=`이 붙은 링크만 앱으로 엽니다.
 

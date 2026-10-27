@@ -1,4 +1,4 @@
-/// 친구와 대결 초대 링크: https://4s-challenge.github.io/?room=K7Q2
+/// 친구와 대결 초대 링크: https://4s-challenge.ohsangplay.com/?room=K7Q2
 ///
 /// 웹에서는 페이지 주소로, 앱에서는 App Links(Android)·Universal Links(iOS)로 들어온다.
 library;

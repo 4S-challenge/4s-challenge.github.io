@@ -8,7 +8,7 @@ import 'solo_play_screen.dart';
 import 'versus_lobby_screen.dart';
 
 /// 스토어 등록에도 쓰는 개인정보처리방침 주소.
-final privacyPolicyUrl = Uri.parse('https://4s-challenge.github.io/privacy.html');
+final privacyPolicyUrl = Uri.parse('https://4s-challenge.ohsangplay.com/privacy.html');
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.initialRoomCode});

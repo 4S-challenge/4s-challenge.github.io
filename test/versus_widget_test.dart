@@ -92,7 +92,7 @@ void main() {
     await tester.pump();
 
     expect(sharer.calls, hasLength(1));
-    expect(sharer.calls.single.url, 'https://4s-challenge.github.io/?room=K7Q2');
+    expect(sharer.calls.single.url, 'https://4s-challenge.ohsangplay.com/?room=K7Q2');
     expect(sharer.calls.single.text, contains('K7Q2'));
     expect(find.byType(SnackBar), findsNothing);
   });
@@ -116,7 +116,7 @@ void main() {
     await tester.tap(find.byKey(const Key('versus-invite')));
     await tester.pump();
 
-    expect(copied, contains('https://4s-challenge.github.io/?room=K7Q2'));
+    expect(copied, contains('https://4s-challenge.ohsangplay.com/?room=K7Q2'));
     expect(find.text('초대 링크를 복사했어요. 친구에게 붙여넣어 보내 주세요'), findsOneWidget);
   });
 
