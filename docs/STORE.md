@@ -11,7 +11,7 @@ Google Play와 App Store에 "4S 챌린지 - 숫자야구"를 올리기 위한 �
 | 패키지 ID / 번들 ID | `com.ohsang.play.fourschallenge` (Android·iOS 공통, 출시 후 변경 불가) |
 | 카테고리 | 게임 › 퍼즐 |
 | 가격 | 무료, 인앱 결제 없음. **앱에 하단 배너 광고(AdMob)** 있음 (웹은 광고 없음) |
-| 개인정보처리방침 | https://4s-challenge.github.io/privacy.html |
+| 개인정보처리방침 | https://4s-challenge.ohsangplay.com/privacy.html |
 | 예상 등급 | 전체이용가 (IARC), App Store 4+ |
 | 서버 | Cloudflare Worker `four-s-challenge-api` (빌드 때 `config/prod.json`으로 주소 주입) |
 
@@ -20,7 +20,7 @@ Google Play와 App Store에 "4S 챌린지 - 숫자야구"를 올리기 위한 �
 - 이름·설명·스크린샷에 **"Mastermind"**(상표)를 쓰지 않는다. "숫자야구", "숫자 추리 게임"으로 설명한다.
 - **KBO 구단명·로고·선수명**을 쓰지 않는다. 야구장 전광판 분위기만 쓴다.
 - **현금·경품·상품권 등 보상**이 있는 기능(랭킹 상품 이벤트 포함)을 넣지 않는다. 넣으면 사행성 문제로 등급과 심사가 달라진다.
-- 웹 버전(4s-challenge.github.io)을 국내에서 직접 서비스하는 것은 스토어 등급과 별개로 **게임물관리위원회 등급분류**가 필요할 수 있다. 스토어 앱은 각 스토어의 자체등급분류(IARC 등)로 처리된다.
+- 웹 버전(4s-challenge.ohsangplay.com)을 국내에서 직접 서비스하는 것은 스토어 등급과 별개로 **게임물관리위원회 등급분류**가 필요할 수 있다. 스토어 앱은 각 스토어의 자체등급분류(IARC 등)로 처리된다.
 
 ## 1. 계정 준비
 
@@ -115,7 +115,7 @@ Android·iOS 모두 **실제 AdMob ID**가 들어가 있습니다.
 | `ios/Runner/Info.plist` → `GADApplicationIdentifier` | iOS 앱 ID | `ca-app-pub-3934873497580609~9320078431` (실제) |
 
 - 디버그 빌드(`flutter run`)는 설정과 상관없이 항상 테스트 광고를 씁니다(`lib/ads/banner_ad_mobile.dart`). 실제 광고는 릴리스 빌드(스토어용 AAB)에서만 나옵니다.
-- `https://4s-challenge.github.io/app-ads.txt` (`web/app-ads.txt`)에 AdMob 게시자 ID 한 줄을 올려 두었습니다. Play 스토어 등록정보의 **웹사이트**를 `https://4s-challenge.github.io`로 넣어야 AdMob이 이 파일을 찾습니다.
+- `https://4s-challenge.ohsangplay.com/app-ads.txt` (`web/app-ads.txt`)에 AdMob 게시자 ID 한 줄을 올려 두었습니다. Play 스토어 등록정보의 **웹사이트**를 `https://4s-challenge.ohsangplay.com`로 넣어야 AdMob이 이 파일을 찾습니다.
 - 스토어에 출시한 뒤 AdMob **앱 › 앱 설정 › 앱 스토어 연결**로 Play 스토어 앱을 연결하면 AdMob 앱 검토가 시작됩니다. 통과 전에는 광고가 적게 나오거나 안 나올 수 있습니다.
 - Android 앱 ID는 빌드할 때 `config/prod.json`에서 `AndroidManifest.xml`로 들어갑니다(`android/app/build.gradle.kts`).
 - **스토어에서 받은 앱(릴리스)에 나오는 내 광고를 직접 누르면 안 됩니다**(무효 클릭으로 계정이 제한될 수 있음). 내 기기에서 확인할 때는 AdMob **설정 › 테스트 기기**에 기기를 등록합니다.
@@ -144,7 +144,7 @@ App Store Connect의 연령 등급 설문도 같은 기준으로 모두 "없음"
 
 ## 5. 개인정보 (데이터 보안 / 앱 개인정보 보호)
 
-처리방침: https://4s-challenge.github.io/privacy.html (홈 화면 아래 링크에서도 열림)
+처리방침: https://4s-challenge.ohsangplay.com/privacy.html (홈 화면 아래 링크에서도 열림)
 
 **Google Play › 앱 콘텐츠 › 데이터 보안**
 

@@ -13,7 +13,7 @@ import '../widgets/common.dart';
 import '../widgets/digit_pad.dart';
 import '../widgets/history.dart';
 
-const _shareBase = 'https://4s-challenge.github.io/';
+const _shareBase = 'https://4s-challenge.ohsangplay.com/';
 
 String roomShareLink(String code) => '$_shareBase?room=$code';
 

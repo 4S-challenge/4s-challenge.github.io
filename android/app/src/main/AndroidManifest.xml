@@ -24,15 +24,15 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- 초대 링크 https://4s-challenge.github.io/?room=CODE 를 앱으로 연다 (App Links).
+            <!-- 초대 링크 https://4s-challenge.ohsangplay.com/?room=CODE 를 앱으로 연다 (App Links).
                  경로는 "/"만 받아서 /privacy.html 같은 다른 페이지는 브라우저로 열린다.
-                 검증 파일: https://4s-challenge.github.io/.well-known/assetlinks.json -->
+                 검증 파일: https://4s-challenge.ohsangplay.com/.well-known/assetlinks.json -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https"/>
-                <data android:host="4s-challenge.github.io"/>
+                <data android:host="4s-challenge.ohsangplay.com"/>
                 <data android:path="/"/>
             </intent-filter>
             <!-- 링크 처리는 app_links 패키지가 한다. Flutter 기본 딥링크 처리는 끈다. -->

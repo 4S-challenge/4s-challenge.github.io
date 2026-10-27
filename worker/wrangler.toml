@@ -24,4 +24,4 @@ new_sqlite_classes = ["VersusRoom"]
 
 [vars]
 # 랭킹 API를 호출할 수 있는 웹 출처. 앱(네이티브)은 Origin 헤더가 없어 영향 없음.
-ALLOWED_ORIGINS = "https://4s-challenge.github.io,http://localhost"
+ALLOWED_ORIGINS = "https://4s-challenge.ohsangplay.com,https://4s-challenge.github.io,http://localhost"

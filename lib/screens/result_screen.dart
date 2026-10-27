@@ -35,7 +35,7 @@ class SoloSummary {
   String get shareMessage => '4S 챌린지 - 숫자야구\n'
       '$tries번 만에 4S 달성! (${formatDuration(elapsed)})';
 
-  static const shareUrl = 'https://4s-challenge.github.io';
+  static const shareUrl = 'https://4s-challenge.ohsangplay.com';
 
   /// 복사할 때 쓰는 전체 글 (글 + 링크).
   String get shareText => shareCopyText(shareMessage, shareUrl);

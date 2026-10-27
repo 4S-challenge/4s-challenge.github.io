@@ -13,19 +13,21 @@ import 'support/fake_server.dart';
 void main() {
   group('roomCodeFromUri', () {
     test('초대 링크에서 방 코드를 꺼낸다', () {
+      expect(roomCodeFromUri(Uri.parse('https://4s-challenge.ohsangplay.com/?room=K7Q2')), 'K7Q2');
+      // 예전 주소로 공유된 링크도 그대로 읽는다.
       expect(roomCodeFromUri(Uri.parse('https://4s-challenge.github.io/?room=K7Q2')), 'K7Q2');
     });
 
     test('소문자·공백은 정리한다', () {
-      expect(roomCodeFromUri(Uri.parse('https://4s-challenge.github.io/?room=%20k7q2%20')), 'K7Q2');
+      expect(roomCodeFromUri(Uri.parse('https://4s-challenge.ohsangplay.com/?room=%20k7q2%20')), 'K7Q2');
     });
 
     test('방 코드가 없거나 형식이 틀리면 null', () {
-      expect(roomCodeFromUri(Uri.parse('https://4s-challenge.github.io/')), isNull);
-      expect(roomCodeFromUri(Uri.parse('https://4s-challenge.github.io/?room=')), isNull);
-      expect(roomCodeFromUri(Uri.parse('https://4s-challenge.github.io/?room=K7Q')), isNull);
-      expect(roomCodeFromUri(Uri.parse('https://4s-challenge.github.io/?room=K7Q2X')), isNull);
-      expect(roomCodeFromUri(Uri.parse('https://4s-challenge.github.io/?room=K7-2')), isNull);
+      expect(roomCodeFromUri(Uri.parse('https://4s-challenge.ohsangplay.com/')), isNull);
+      expect(roomCodeFromUri(Uri.parse('https://4s-challenge.ohsangplay.com/?room=')), isNull);
+      expect(roomCodeFromUri(Uri.parse('https://4s-challenge.ohsangplay.com/?room=K7Q')), isNull);
+      expect(roomCodeFromUri(Uri.parse('https://4s-challenge.ohsangplay.com/?room=K7Q2X')), isNull);
+      expect(roomCodeFromUri(Uri.parse('https://4s-challenge.ohsangplay.com/?room=K7-2')), isNull);
     });
   });
 
@@ -58,7 +60,7 @@ void main() {
       addTearDown(links.close);
       await tester.pumpWidget(FourSApp(api: FakeServer().api, inviteLinks: links.stream));
 
-      links.add(Uri.parse('https://4s-challenge.github.io/?room=k7q2'));
+      links.add(Uri.parse('https://4s-challenge.ohsangplay.com/?room=k7q2'));
       await settle(tester);
 
       expect(find.byType(VersusLobbyScreen), findsOneWidget);
@@ -75,7 +77,7 @@ void main() {
       await settle(tester);
       expect(find.byType(RankingScreen), findsOneWidget);
 
-      links.add(Uri.parse('https://4s-challenge.github.io/?room=AB23'));
+      links.add(Uri.parse('https://4s-challenge.ohsangplay.com/?room=AB23'));
       // 랭킹 화면이 닫히는 전환까지 기다린다.
       await settle(tester);
       await settle(tester);
@@ -91,7 +93,7 @@ void main() {
       addTearDown(links.close);
       await tester.pumpWidget(FourSApp(api: FakeServer().api, inviteLinks: links.stream));
 
-      links.add(Uri.parse('https://4s-challenge.github.io/'));
+      links.add(Uri.parse('https://4s-challenge.ohsangplay.com/'));
       await settle(tester);
 
       expect(find.byType(VersusLobbyScreen), findsNothing);

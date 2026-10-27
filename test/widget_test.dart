@@ -179,7 +179,7 @@ void main() {
     await tester.tap(find.byKey(const Key('result-share')));
     await tester.pump();
     expect(sharer.calls.single.text, contains('2번 만에 4S 달성!'));
-    expect(sharer.calls.single.url, 'https://4s-challenge.github.io');
+    expect(sharer.calls.single.url, 'https://4s-challenge.ohsangplay.com');
     expect(find.text('결과를 복사했어요'), findsNothing);
   });
 
