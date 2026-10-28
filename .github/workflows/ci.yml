@@ -186,7 +186,8 @@ jobs:
         env:
           APP_ID: com.ohsang.play.fourschallenge
           ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
-          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+          # 팀 ID는 공개되는 값(검증 파일에 그대로 들어감)이라 기본값으로 둔다. 저장소 변수가 있으면 그 값을 쓴다.
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID || 'G2422MW76B' }}
         run: |
           mkdir -p build/web/.well-known
           if [ -n "$ANDROID_CERT_SHA256" ]; then
