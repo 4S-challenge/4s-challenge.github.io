@@ -71,6 +71,8 @@ android {
             } else {
                 signingConfigs.getByName("release")
             }
+            // 광고 SDK의 WorkManager 클래스가 코드 축소로 지워지지 않게 한다 (proguard-rules.pro 참고).
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 }
