@@ -199,7 +199,7 @@ iOS 앱은 처음 실행할 때 **앱 추적 투명성(ATT) 창**으로 추적 �
    만들어진 `build/ios/ipa/*.ipa`를 Transporter 앱이나 Xcode Organizer로 업로드.
 5. App Store Connect에서 앱 만들기 → TestFlight로 확인 → 등록 정보·스크린샷·개인정보·연령 등급 작성 → 심사 제출.
 
-Mac이 없으면 GitHub Actions의 macOS 러너나 Codemagic 같은 CI로 빌드·업로드할 수 있습니다(인증서·프로비저닝 프로필을 시크릿으로 등록). 처음 한 번은 Mac에서 직접 해 보는 것을 권장합니다.
+**Mac 없이 올리기**: GitHub **Actions → iOS upload → Run workflow**가 빌드·서명·업로드를 합니다(`.github/workflows/ios-release.yml`). 필요한 것은 App Store Connect API 팀 키(권한: 관리자)를 넣은 저장소 시크릿 3개(`ASC_ISSUER_ID`, `ASC_KEY_ID`, `ASC_PRIVATE_KEY` = .p8 파일 내용)뿐이고, 인증서·프로필은 Xcode 자동 서명(클라우드 서명)이 만듭니다. 빌드 번호는 워크플로 실행 번호입니다. 같은 키를 다른 앱 저장소에서도 쓸 수 있습니다(조직 시크릿 권장).
 
 ## 7-1. App Store Connect 입력값
 
