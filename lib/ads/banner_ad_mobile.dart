@@ -1,5 +1,8 @@
 import 'dart:io' show Platform;
 
+import 'dart:async';
+
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -29,14 +32,34 @@ String get _bannerUnitId {
 
 bool _initialized = false;
 
+/// 광고 SDK 준비가 끝나면 완료된다. 배너는 이걸 기다렸다가 광고를 요청한다.
+final _ready = Completer<void>();
+
 /// 앱 시작 때 한 번 부른다.
+/// iOS는 첫 화면이 뜬 뒤 앱 추적 투명성(ATT) 창으로 먼저 묻고, 답을 받은 뒤 광고 SDK를 준비한다.
 Future<void> initAds() async {
   if (!_adsSupported || _initialized) return;
   _initialized = true;
+  if (Platform.isIOS) await _askTracking();
   try {
     await MobileAds.instance.initialize();
   } catch (e) {
     debugPrint('광고 초기화 실패: $e');
+  }
+  if (!_ready.isCompleted) _ready.complete();
+}
+
+Future<void> _askTracking() async {
+  try {
+    // 앱이 화면에 완전히 뜬 상태에서 물어야 iOS가 창을 보여준다.
+    await WidgetsBinding.instance.endOfFrame;
+    await Future<void>.delayed(const Duration(milliseconds: 800));
+    final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+    if (status == TrackingStatus.notDetermined) {
+      await AppTrackingTransparency.requestTrackingAuthorization();
+    }
+  } catch (e) {
+    debugPrint('추적 허용 확인 실패: $e');
   }
 }
 
@@ -57,6 +80,12 @@ class _BottomBannerAdState extends State<BottomBannerAd> {
   void initState() {
     super.initState();
     if (!_adsSupported) return;
+    unawaited(_ready.future.then((_) {
+      if (mounted) _load();
+    }));
+  }
+
+  void _load() {
     _ad = BannerAd(
       adUnitId: _bannerUnitId,
       size: AdSize.banner,

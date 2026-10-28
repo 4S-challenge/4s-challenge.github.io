@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0E2A22">
+  <meta name="description" content="4S 챌린지 - 숫자야구 고객 지원">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>고객 지원 - 4S 챌린지</title>
+  <style>
+    :root {
+      --ground: #0E2A22;
+      --board: #08201A;
+      --panel: #163B30;
+      --line: #2C5A4B;
+      --chalk: #F4F1E8;
+      --muted: #A9BDB4;
+      --strike: #F5B83D;
+      --ball: #8FD3F4;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--ground); color: var(--chalk); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      word-break: keep-all;
+      overflow-wrap: break-word;
+    }
+    main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
+    header { border-bottom: 1px solid var(--line); padding-bottom: 20px; margin-bottom: 8px; }
+    .brand { color: var(--strike); font-weight: 700; letter-spacing: 1px; text-decoration: none; }
+    h1 { font-size: 28px; line-height: 1.3; margin: 8px 0 4px; }
+    .meta { color: var(--muted); font-size: 14px; margin: 0; }
+    .summary {
+      background: var(--board);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 24px 0 8px;
+    }
+    .summary strong { color: var(--strike); }
+    .summary ul { margin: 8px 0 0; padding-left: 20px; }
+    h2 { font-size: 19px; margin: 36px 0 8px; color: var(--strike); }
+    h2 span { color: var(--muted); font-weight: 400; margin-right: 6px; }
+    p, li { color: var(--chalk); }
+    ul { padding-left: 22px; }
+    li + li { margin-top: 4px; }
+    .table-wrap { overflow-x: auto; margin: 12px 0; }
+    table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 15px; }
+    th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: var(--panel); font-weight: 600; }
+    td { background: var(--board); }
+    a { color: var(--ball); }
+    @media (max-width: 600px) {
+      table { min-width: 0; }
+      thead { display: none; }
+      table, tbody, tr, td { display: block; width: 100%; }
+      tr { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
+      td { border: 0; border-top: 1px solid var(--line); }
+      td:first-child { border-top: 0; background: var(--panel); font-weight: 600; }
+      td[data-label]::before { content: attr(data-label); display: block; color: var(--muted); font-size: 13px; }
+    }
+    details { background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin: 10px 0; }
+    summary { cursor: pointer; font-weight: 600; }
+    details p { margin: 8px 0 0; }
+    footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <a class="brand" href="./">4S 챌린지 - 숫자야구</a>
+    <h1>고객 지원</h1>
+    <p class="meta">오상플레이 · 문의와 자주 묻는 질문</p>
+  </header>
+
+  <h2>문의하기</h2>
+  <p>오류 신고, 랭킹 기록 삭제, 기타 문의는 아래로 보내 주세요. 기기 종류(예: 갤럭시 S24, iPhone 15)와 앱 버전, 일어난 일을 함께 적어 주시면 빨리 확인할 수 있어요.</p>
+  <ul>
+    <li><a href="https://github.com/4S-challenge/4s-challenge.github.io/issues">GitHub Issues에 문의 남기기</a></li>
+  </ul>
+
+  <h2>자주 묻는 질문</h2>
+  <details>
+    <summary>게임 규칙이 어떻게 되나요?</summary>
+    <p>서로 다른 숫자 4개로 된 비밀 숫자를 맞히는 게임이에요. 숫자와 자리가 모두 맞으면 S(스트라이크), 숫자는 있지만 자리가 다르면 B(볼), 맞는 숫자가 없으면 OUT이에요. 4S가 나오면 정답입니다.</p>
+  </details>
+  <details>
+    <summary>랭킹은 어떻게 정해지나요?</summary>
+    <p>혼자 하기에서 정답을 맞히면 영문 이니셜 3글자로 등록할 수 있어요. 적은 시도 순, 시도가 같으면 빨리 맞힌 순이에요.</p>
+  </details>
+  <details>
+    <summary>친구와 대결은 어떻게 하나요?</summary>
+    <p>친구와 대결에서 방을 만들고 방 코드나 초대 링크를 친구에게 보내세요. 두 사람이 각자 상대가 맞힐 숫자를 정한 뒤 번갈아 던지고, 먼저 4S를 만드는 사람이 이겨요. 차례마다 30초 제한이 있어요.</p>
+  </details>
+  <details>
+    <summary>이미 대결 중인 방에 들어가면 어떻게 되나요?</summary>
+    <p>관전으로 들어갈 수 있어요. 관전자는 두 사람이 던진 숫자와 결과를 볼 수 있지만, 비밀 숫자는 대결이 끝날 때까지 보이지 않아요.</p>
+  </details>
+  <details>
+    <summary>"오프라인 모드"라고 나와요.</summary>
+    <p>서버에 연결할 수 없을 때는 기기 안에서 게임을 진행해요. 이때는 랭킹에 등록할 수 없어요. 인터넷 연결을 확인한 뒤 새 게임을 시작해 주세요.</p>
+  </details>
+  <details>
+    <summary>제 랭킹 기록을 지우고 싶어요.</summary>
+    <p>위 문의처로 이니셜, 순위, 등록한 날짜를 알려 주시면 확인 후 지워 드려요.</p>
+  </details>
+  <details>
+    <summary>광고는 어디에 나오나요?</summary>
+    <p>앱의 홈, 결과, 랭킹, 대결 대기·결과 화면 맨 아래에 배너 광고가 나와요. 숫자를 입력하는 게임 화면에는 광고가 없어요. 웹 버전에는 광고가 없어요.</p>
+  </details>
+
+  <footer>
+    <a href="privacy.html">개인정보처리방침</a> · <a href="./">게임으로 돌아가기</a>
+  </footer>
+</main>
+</body>
+</html>
