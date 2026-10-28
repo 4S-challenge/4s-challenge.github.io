@@ -227,7 +227,8 @@ Mac이 없으면 GitHub Actions의 macOS 러너나 Codemagic 같은 CI로 빌드
 | 마케팅 URL (선택) | `https://4s-challenge.ohsangplay.com` |
 | 개인정보처리방침 URL | `https://4s-challenge.ohsangplay.com/privacy.html` |
 | 저작권 | `2026 오상플레이` |
-| 스크린샷 (6.9인치) | `store/screenshots/iphone/01~06.png` (1320×2868) 순서대로 |
+| 스크린샷 (필수) | **Dynamic Island iPhone (중형 디스플레이)** 칸에 `store/screenshots/iphone-6.3/01~06.png` (1206×2622) 순서대로 |
+| 스크린샷 (선택) | 대형 디스플레이 칸에 `store/screenshots/iphone/01~06.png` (1320×2868). 비워 두면 중형 스크린샷을 씀 |
 | 앱 아이콘 | 따로 올리지 않음. 빌드에 들어간 1024×1024 아이콘(`assets/icon/icon.png`, 투명도 없음)을 씀 |
 
 키워드에는 앱 이름에 이미 있는 단어(숫자야구, 챌린지)를 넣지 않습니다. 이름과 부제의 단어는 자동으로 검색됩니다.
