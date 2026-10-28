@@ -261,7 +261,7 @@ Mac이 없으면 GitHub Actions의 macOS 러너나 Codemagic 같은 CI로 빌드
 **업로드 전 Apple Developer에서**
 
 1. **Identifiers**에서 App ID `com.ohsang.play.fourschallenge` 등록 → Capabilities에서 **Associated Domains** 체크.
-2. **Membership details**의 **Team ID**를 GitHub 저장소 변수 `APPLE_TEAM_ID`에 넣고 main을 다시 배포 → 초대 링크가 앱으로 열림.
+2. Team ID `G2422MW76B`는 CI 기본값과 Xcode 프로젝트(`DEVELOPMENT_TEAM`)에 넣어 두었습니다. 배포하면 `/.well-known/apple-app-site-association`이 올라가 초대 링크가 앱으로 열립니다.
 
 ## 8. 출시 전 마지막 확인
 
