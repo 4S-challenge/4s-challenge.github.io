@@ -290,6 +290,27 @@ jobs:
         if: always()
         run: rm -f android/key.properties "$RUNNER_TEMP/upload-keystore.jks"
 
+  # iOS 앱. 서명 없이 빌드되는지만 확인한다 (App Store 업로드는 Mac의 Xcode에서, docs/STORE.md 7).
+  ios:
+    name: Build iOS app (no signing)
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Build iOS
+        run: |
+          flutter build ios --release --no-codesign \
+            --dart-define-from-file=config/prod.json \
+            --build-number=${{ github.run_number }}
+
   deploy:
     name: Deploy to GitHub Pages
     if: ${{ !cancelled() && needs.build.result == 'success' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}

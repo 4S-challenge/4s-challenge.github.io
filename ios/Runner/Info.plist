@@ -62,8 +62,10 @@
 	<!-- HTTPS(표준 암호화)만 쓰므로 App Store 수출 규정 질문이 매번 나오지 않게 한다. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
-	<!-- AdMob 앱 ID. 지금은 Google 테스트 앱 ID. 스토어 출시 후 AdMob에 앱을 등록하면
-	     실제 iOS 앱 ID(ca-app-pub-XXXX~YYYY)로 바꾼다 (docs/STORE.md 참고). -->
+	<!-- 앱 추적 투명성(ATT) 창 문구. 광고 SDK가 광고 식별자(IDFA)를 쓰기 전에 묻는다. -->
+	<key>NSUserTrackingUsageDescription</key>
+	<string>나에게 더 맞는 광고를 보여주는 데 사용돼요. 허용하지 않아도 게임은 모두 그대로 이용할 수 있어요.</string>
+	<!-- AdMob iOS 앱 ID (docs/STORE.md 3-1) -->
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-3934873497580609~9320078431</string>
 	<!-- 광고 성과 측정용 (Google 광고 네트워크) -->
