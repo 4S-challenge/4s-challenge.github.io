@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stripPathPrefix } from '../src/index';
+import { stripPathPrefix } from '../src/routing';
 
 describe('경로 앞부분(/4s)', () => {
   it('공용 API 도메인의 /4s 아래 경로를 원래 경로로 바꾼다', () => {
