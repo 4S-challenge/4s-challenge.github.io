@@ -95,7 +95,17 @@ jobs:
         id: deploy
         if: steps.cf.outputs.ready == 'true'
         run: |
-          npx wrangler deploy 2>&1 | tee deploy.log
+          set +e
+          npx wrangler deploy > deploy.log 2>&1
+          status=$?
+          set -e
+          cat deploy.log
+          if [ "$status" -ne 0 ]; then
+            grep -iE "error|✘|permission|authenticat|not allowed|zone" deploy.log | head -20 | while read -r line; do
+              echo "::error title=wrangler deploy::${line:0:900}"
+            done
+            exit "$status"
+          fi
           url="$(grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' deploy.log | head -n1)"
           if [ -z "$url" ]; then
             echo "::warning::배포된 Worker 주소를 찾지 못했습니다. 저장소 변수 API_BASE_URL에 주소를 직접 넣어 주세요."
