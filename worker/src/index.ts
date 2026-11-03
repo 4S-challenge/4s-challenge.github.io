@@ -1,6 +1,7 @@
 import { generateSecret, judge, validateGuess, validateInitials, DIGITS } from './game';
 import { VersusRoom } from './room';
 import { isRoomCode, randomRoomCode } from './versus';
+import { stripPathPrefix } from './routing';
 
 export { VersusRoom };
 
@@ -238,6 +239,7 @@ function connectVersusRoom(request: Request, env: Env, code: string, url: URL): 
 
 async function route(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
+  url.pathname = stripPathPrefix(url.pathname);
   const key = `${request.method} ${url.pathname.replace(/\/+$/, '')}`;
   switch (key) {
     case 'GET /api/health':
