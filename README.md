@@ -91,7 +91,11 @@ GitHub에 Cloudflare 시크릿 두 개만 넣으면 됩니다. 나머지(D1 데�
 
 같은 Cloudflare 계정을 다른 프로젝트와 함께 써도 됩니다. Worker(`four-s-challenge-api`)와 D1(`four-s-challenge`)은 이름으로 분리되고, 토큰은 프로젝트별로 따로 만드는 것을 권장합니다.
 
-서버 주소를 직접 정하고 싶으면(예: 커스텀 도메인) 저장소 변수 `API_BASE_URL`을 넣으면 그 값을 우선 사용합니다. 시크릿이 없으면 Worker 배포는 건너뛰고 웹은 오프라인 모드로 배포됩니다.
+**서버 주소**: `https://api.ohsangplay.com/4s` — 오상플레이 공용 API 도메인을 앱마다 경로로 나눠 쓴다(`worker/wrangler.toml`의 `routes`, `/4s`는 `worker/src/routing.ts`가 떼고 처리). Cloudflare DNS에 `api` AAAA `100::`(프록시됨) 레코드가 있어야 한다. 앱(`config/prod.json`)과 웹 빌드가 이 주소를 쓴다.
+
+예전 주소 `https://four-s-challenge-api.shark-keeper.workers.dev`는 **처음 출시된 앱(Android 빌드 93, iOS 1.0)이 쓰므로 켜 둔다**(`workers_dev = true`). 새 주소가 들어간 업데이트가 나가고 대부분 업데이트한 뒤에 끈다. 그 전에 Cloudflare 계정의 workers.dev 이름을 바꾸면 그 앱들이 오프라인이 된다.
+
+저장소 변수 `API_BASE_URL`을 넣으면 웹 빌드는 그 값을 우선 사용합니다.
 
 ## 로컬 실행
 

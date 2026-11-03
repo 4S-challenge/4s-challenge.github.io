@@ -175,12 +175,17 @@ jobs:
           fi
           exit $status
 
-      # 랭킹 서버 주소: 저장소 변수 API_BASE_URL이 있으면 그 값, 없으면 방금 배포한 Worker 주소.
-      # 둘 다 없으면 오프라인 모드로 빌드한다.
+      # 랭킹 서버 주소: 저장소 변수 API_BASE_URL → config/prod.json(앱과 같은 주소, https://api.ohsangplay.com/4s)
+      # → 방금 배포한 Worker 주소 순서로 쓴다. 모두 없으면 오프라인 모드로 빌드한다.
       - name: Build web
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL || needs.deploy-worker.outputs.url }}
+          CONFIG_API_BASE_URL_FIRST: ${{ vars.API_BASE_URL == '' }}
         run: |
+          if [ "$CONFIG_API_BASE_URL_FIRST" = "true" ]; then
+            from_config="$(jq -r '.API_BASE_URL // empty' config/prod.json)"
+            [ -n "$from_config" ] && API_BASE_URL="$from_config"
+          fi
           if [ -n "$API_BASE_URL" ]; then
             echo "랭킹 서버: $API_BASE_URL"
           else

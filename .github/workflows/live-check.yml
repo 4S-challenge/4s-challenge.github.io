@@ -22,7 +22,7 @@ jobs:
           node-version: 22
       - name: Spectator flow
         env:
-          BASE: ${{ inputs.base || vars.API_BASE_URL || 'https://four-s-challenge-api.shark-keeper.workers.dev' }}
+          BASE: ${{ inputs.base || vars.API_BASE_URL || 'https://api.ohsangplay.com/4s' }}
         run: |
           node tools/e2e/spectator-e2e.mjs | tee out.txt
           status=${PIPESTATUS[0]}
