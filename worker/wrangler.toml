@@ -2,9 +2,11 @@ name = "four-s-challenge-api"
 main = "src/index.ts"
 compatibility_date = "2026-10-01"
 
-# 서버 주소. 오상플레이 도메인(ohsangplay.com, 같은 Cloudflare 계정)에 붙인다. DNS·인증서는 배포 때 Cloudflare가 만든다.
+# 서버 주소: 오상플레이 공용 API 도메인의 /4s 경로 (https://api.ohsangplay.com/4s/...).
+# 앱마다 경로로 나눠 쓴다(/4s, /yacht …). Cloudflare DNS에 api.ohsangplay.com 레코드(AAAA 100::, 프록시됨)가 있어야 한다.
+# 코드는 src/index.ts의 stripPathPrefix가 /4s를 떼고 처리한다.
 routes = [
-  { pattern = "4s-challenge-api.ohsangplay.com", custom_domain = true },
+  { pattern = "api.ohsangplay.com/4s/*", zone_name = "ohsangplay.com" },
 ]
 # 예전 주소(four-s-challenge-api.<계정>.workers.dev)도 반드시 켜 둔다.
 # 이미 출시된 앱(Android 빌드 93, iOS 1.0)이 이 주소로 연결한다. routes가 있으면 기본값이 꺼짐이라 명시한다.
