@@ -13,6 +13,7 @@ Google Play와 App Store에 "4S 챌린지 - 숫자야구"를 올리기 위한 �
 | 가격 | 무료, 인앱 결제 없음. **앱에 하단 배너 광고(AdMob)** 있음 (웹은 광고 없음) |
 | 개인정보처리방침 | https://4s-challenge.ohsangplay.com/privacy.html |
 | 지원 페이지 | https://4s-challenge.ohsangplay.com/support.html |
+| 이용약관 | https://4s-challenge.ohsangplay.com/terms.html |
 | 예상 등급 | 전체이용가 (IARC), App Store 4+ |
 | 서버 | Cloudflare Worker `four-s-challenge-api`, 주소 `https://api.ohsangplay.com/4s` (빌드 때 `config/prod.json`으로 주입. 첫 출시 빌드는 workers.dev 주소를 씀) |
 
