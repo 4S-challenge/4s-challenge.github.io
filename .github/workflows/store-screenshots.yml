@@ -23,6 +23,8 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          # 새 stable(3.47+)은 material.dart를 지원 중단 처리해 분석·빌드가 깨진다. 확인된 버전으로 고정.
+          flutter-version: 3.44.x
           cache: true
 
       - run: flutter pub get
